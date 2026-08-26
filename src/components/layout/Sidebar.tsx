@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Logo } from '@/components/ui/Logo';
 import {
   LayoutDashboard,
   Play,
@@ -45,17 +46,7 @@ export function Sidebar() {
     <aside className="w-64 bg-[#0B0F19] text-slate-300 flex flex-col border-r border-slate-800/80 shrink-0 select-none z-30">
       {/* Brand Header */}
       <div className="h-16 flex items-center px-5 border-b border-slate-800/80 gap-3 bg-[#0B0F19]/50">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-mono font-extrabold text-sm tracking-wider">
-          <Shield className="w-4 h-4 fill-white" />
-        </div>
-        <div>
-          <div className="text-white font-extrabold text-sm tracking-wide flex items-center gap-1">
-            CONTROLPLANE<span className="text-blue-400 font-mono text-xs">.AI</span>
-          </div>
-          <div className="text-[9px] text-slate-400 font-semibold tracking-wider uppercase font-mono">
-            Enterprise AI Ops & Governance
-          </div>
-        </div>
+        <Logo size="md" />
       </div>
 
       {/* Navigation Links */}
