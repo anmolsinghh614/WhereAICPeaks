@@ -27,7 +27,7 @@ export function PlaygroundDecision({
 
   if (loading) {
     return (
-      <div className="w-full lg:w-84 glass-panel rounded-2xl p-5 flex flex-col gap-4 shrink-0 animate-pulse select-none">
+      <div className="w-full glass-panel rounded-2xl p-5 flex flex-col gap-4 shrink-0 animate-pulse select-none">
         <div className="h-4 bg-slate-200 rounded-full w-2/3"></div>
         <div className="h-28 bg-slate-100 rounded-2xl"></div>
         <div className="grid grid-cols-2 gap-2">
@@ -42,7 +42,7 @@ export function PlaygroundDecision({
 
   if (!trace) {
     return (
-      <div className="w-full lg:w-84 glass-panel rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 shrink-0 text-slate-400 select-none min-h-[380px]">
+      <div className="w-full glass-panel rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 shrink-0 text-slate-400 select-none min-h-[380px]">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
           <Shield className="w-7 h-7" />
         </div>
@@ -73,7 +73,7 @@ export function PlaygroundDecision({
     trace.riskScore < 30 ? '#10b981' : trace.riskScore < 60 ? '#f59e0b' : trace.riskScore < 80 ? '#ea580c' : '#ef4444';
 
   return (
-    <div className="w-full lg:w-84 glass-panel rounded-2xl p-5 flex flex-col gap-4.5 shrink-0 overflow-y-auto max-h-[calc(100vh-8rem)] select-none">
+    <div className="w-full glass-panel rounded-2xl p-5 flex flex-col gap-4.5 shrink-0 overflow-y-auto max-h-[calc(100vh-8rem)] select-none">
       {/* 1. Decision State Hero Card */}
       <div className={`p-4.5 rounded-2xl border-2 shadow-sm relative overflow-hidden ${decisionColor}`}>
         <div className="flex items-center justify-between">

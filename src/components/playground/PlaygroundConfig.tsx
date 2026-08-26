@@ -53,7 +53,7 @@ export function PlaygroundConfig({
   const activeGuardrailCount = (selectedGuardrailIds || []).length;
 
   return (
-    <div className="w-full lg:w-84 glass-panel rounded-2xl p-5 flex flex-col gap-5 shrink-0 overflow-y-auto max-h-[calc(100vh-8rem)] select-none">
+    <div className="w-full glass-panel rounded-2xl p-5 flex flex-col gap-5 shrink-0 overflow-y-auto max-h-[calc(100vh-8rem)] select-none">
       {/* 1. Virtual Endpoint Selector */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">

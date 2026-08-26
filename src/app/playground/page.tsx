@@ -261,30 +261,32 @@ export default function PlaygroundPage() {
       title="Interactive Governance Playground"
       subtitle="Select foundation models, configure real-time guardrails, enforce policies, and inspect execution telemetry"
     >
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* Left Column: Interactive Configuration */}
-        <PlaygroundConfig
-          virtualModels={virtualModels}
-          selectedVirtualModel={selectedVirtualModel}
-          onSelectVirtualModel={handleSelectVirtualModel}
-          policies={policies}
-          selectedPolicyId={selectedPolicyId}
-          onSelectPolicyId={setSelectedPolicyId}
-          guardrails={guardrails}
-          selectedGuardrailIds={selectedGuardrailIds}
-          onToggleGuardrailId={handleToggleGuardrailId}
-          models={models}
-          selectedModelId={selectedModelId}
-          onSelectModelId={setSelectedModelId}
-          temperature={temperature}
-          setTemperature={setTemperature}
-          maxTokens={maxTokens}
-          setMaxTokens={setMaxTokens}
-          onOpenCreateModelModal={() => setIsCreateModalOpen(true)}
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Interactive Configuration (3 cols) */}
+        <div className="xl:col-span-3 min-w-0">
+          <PlaygroundConfig
+            virtualModels={virtualModels}
+            selectedVirtualModel={selectedVirtualModel}
+            onSelectVirtualModel={handleSelectVirtualModel}
+            policies={policies}
+            selectedPolicyId={selectedPolicyId}
+            onSelectPolicyId={setSelectedPolicyId}
+            guardrails={guardrails}
+            selectedGuardrailIds={selectedGuardrailIds}
+            onToggleGuardrailId={handleToggleGuardrailId}
+            models={models}
+            selectedModelId={selectedModelId}
+            onSelectModelId={setSelectedModelId}
+            temperature={temperature}
+            setTemperature={setTemperature}
+            maxTokens={maxTokens}
+            setMaxTokens={setMaxTokens}
+            onOpenCreateModelModal={() => setIsCreateModalOpen(true)}
+          />
+        </div>
 
-        {/* Center Column: Execution, Prompts & Response */}
-        <div className="flex-1 space-y-6 min-w-0">
+        {/* Center Column: Execution, Prompts & Response (6 cols) */}
+        <div className="xl:col-span-6 space-y-6 min-w-0">
           {/* Preset Scenario Selector */}
           <div className="glass-panel rounded-2xl p-4 shadow-xs">
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5 font-mono">
@@ -568,12 +570,14 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
-        {/* Right Column: Real-Time Decision & Telemetry Card */}
-        <PlaygroundDecision
-          trace={latestTrace}
-          isExecuting={isExecuting}
-          onOpenTraceDrawer={() => latestTrace && setSelectedTraceId(latestTrace.id)}
-        />
+        {/* Right Column: Real-Time Decision & Telemetry Card (3 cols) */}
+        <div className="xl:col-span-3 min-w-0">
+          <PlaygroundDecision
+            trace={latestTrace}
+            isExecuting={isExecuting}
+            onOpenTraceDrawer={() => latestTrace && setSelectedTraceId(latestTrace.id)}
+          />
+        </div>
       </div>
 
       {/* Slide-over Full Execution Trace Drawer */}
