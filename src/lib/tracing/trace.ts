@@ -89,4 +89,13 @@ export class TracingEngine {
   }
 }
 
-export const tracingEngine = new TracingEngine();
+const globalForTracing = globalThis as unknown as {
+  tracingEngine: TracingEngine | undefined;
+};
+
+export const tracingEngine =
+  globalForTracing.tracingEngine ?? new TracingEngine();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForTracing.tracingEngine = tracingEngine;
+}

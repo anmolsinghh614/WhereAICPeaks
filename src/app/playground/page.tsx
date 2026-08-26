@@ -554,6 +554,7 @@ export default function PlaygroundPage() {
       {/* Slide-over Full Execution Trace Drawer */}
       <TraceDrawer
         traceId={selectedTraceId}
+        initialTrace={latestTrace}
         onClose={() => setSelectedTraceId(null)}
       />
 

@@ -22,11 +22,12 @@ import {
 
 interface TraceDrawerProps {
   traceId: string | null;
+  initialTrace?: TraceRecord | null;
   onClose: () => void;
 }
 
-export function TraceDrawer({ traceId, onClose }: TraceDrawerProps) {
-  const [trace, setTrace] = useState<TraceRecord | null>(null);
+export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps) {
+  const [trace, setTrace] = useState<TraceRecord | null>(initialTrace || null);
   const [loading, setLoading] = useState(false);
   const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({});
   const [viewRawJson, setViewRawJson] = useState(false);
@@ -35,13 +36,21 @@ export function TraceDrawer({ traceId, onClose }: TraceDrawerProps) {
   useEffect(() => {
     if (!traceId) return;
 
+    if (initialTrace && initialTrace.id === traceId) {
+      setTrace(initialTrace);
+      const expanded: Record<string, boolean> = {};
+      initialTrace.spans?.forEach((s: TraceSpan) => {
+        expanded[s.id] = true;
+      });
+      setExpandedSpans(expanded);
+    }
+
     setLoading(true);
     fetch(`/api/traces/${traceId}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.error) {
           setTrace(data);
-          // Expand all by default
           const expanded: Record<string, boolean> = {};
           data.spans?.forEach((s: TraceSpan) => {
             expanded[s.id] = true;
@@ -49,9 +58,9 @@ export function TraceDrawer({ traceId, onClose }: TraceDrawerProps) {
           setExpandedSpans(expanded);
         }
       })
-      .catch((err) => console.error('Failed to load trace', err))
+      .catch((err) => console.error('Failed to load trace from API', err))
       .finally(() => setLoading(false));
-  }, [traceId]);
+  }, [traceId, initialTrace]);
 
   if (!traceId) return null;
 

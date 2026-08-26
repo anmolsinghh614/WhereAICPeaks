@@ -139,4 +139,13 @@ export class MetricsEngine {
   }
 }
 
-export const metricsEngine = new MetricsEngine();
+const globalForMetrics = globalThis as unknown as {
+  metricsEngine: MetricsEngine | undefined;
+};
+
+export const metricsEngine =
+  globalForMetrics.metricsEngine ?? new MetricsEngine();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForMetrics.metricsEngine = metricsEngine;
+}
