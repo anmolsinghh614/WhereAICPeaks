@@ -1,0 +1,207 @@
+// ControlPlane.ai Prisma Schema
+// PostgreSQL Data Layer with Enterprise Microservice Entities
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Model {
+  id               String   @id @default(cuid())
+  provider         String   // "OpenAI", "Anthropic", "Google", "ControlPlane"
+  name             String   // "GPT-4.1 Enterprise"
+  modelName        String   // "gpt-4.1-turbo"
+  inputTokenPrice  Float    // USD per 1K tokens
+  outputTokenPrice Float    // USD per 1K tokens
+  contextWindow    Int      // 128000
+  capabilities     String[] // ["text", "code", "reasoning"]
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  virtualModels    VirtualModel[]
+  requests         AIRequest[]
+  traces           Trace[]
+}
+
+model VirtualModel {
+  id                String   @id @default(cuid())
+  name              String   // "Finance Assistant"
+  description       String?  // "Analyzes statements with PII redaction"
+  underlyingModelId String
+  provider          String   @default("OpenAI")
+  systemPrompt      String?  @default("You are an enterprise AI assistant.")
+  temperature       Float    @default(0.7)
+  maxTokens         Int      @default(1024)
+  policyId          String
+  guardrailIds      String[]
+  budgetId          String?
+  dailyBudget       Float    @default(100.0)
+  perRequestBudget  Float    @default(0.05)
+  spentToday        Float    @default(0.0)
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  model             Model?   @relation(fields: [underlyingModelId], references: [id])
+  policy            Policy?  @relation(fields: [policyId], references: [id])
+  budget            Budget?  @relation(fields: [budgetId], references: [id])
+  requests          AIRequest[]
+  traces            Trace[]
+  alerts            Alert[]
+}
+
+model Policy {
+  id                   String   @id @default(cuid())
+  name                 String   // "Finance Strict Policy"
+  description          String?
+  riskThresholdBlock   Int      @default(60)
+  riskThresholdEscalate Int     @default(40)
+  budgetLimit          Float    @default(100.0)
+  allowedModels        String[]
+  guardrailRules       Json     // Specific rules and overrides
+  requiredHumanReview  Boolean  @default(false)
+  actions              String[] // ["BLOCK_HIGH_RISK", "REDACT_PII", "ESCALATE_FINANCIAL"]
+  enabled              Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  virtualModels        VirtualModel[]
+}
+
+model Guardrail {
+  id          String   @id @default(cuid())
+  name        String   // "PII Detection & Redaction"
+  type        String   // "PII", "PROMPT_INJECTION", "SECRETS", "CONTENT_SAFETY", "FINANCIAL_ADVICE"
+  description String
+  severity    String   @default("HIGH") // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  action      String   @default("MODIFY") // "WARN", "MODIFY", "BLOCK", "ESCALATE"
+  rules       Json?
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Budget {
+  id                  String   @id @default(cuid())
+  name                String   // "Engineering Department Pool"
+  dailyLimit          Float    @default(100.0)
+  monthlyLimit        Float    @default(2500.0)
+  perRequestLimit     Float    @default(0.10)
+  currentDailySpend   Float    @default(0.0)
+  currentMonthlySpend Float    @default(0.0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  virtualModels       VirtualModel[]
+}
+
+model AIRequest {
+  id                  String   @id @default(cuid())
+  traceId             String   @unique
+  virtualModelId      String
+  modelId             String
+  provider            String
+  input               String
+  output              String?
+  originalOutput      String?  // Preserved when MODIFIED
+  inputTokens         Int      @default(0)
+  outputTokens        Int      @default(0)
+  totalTokens         Int      @default(0)
+  cost                Float    @default(0.0)
+  latencyMs           Int      @default(0)
+  performanceScore    Float    @default(0.0)
+  responsibilityScore String   @default("PASS") // "PASS", "VIOLATION", "WARNING"
+  riskScore           Int      @default(0)
+  decision            String   // "ALLOW", "MODIFY", "BLOCK", "ESCALATE"
+  decisionReason      String
+  status              String   @default("COMPLETED") // "COMPLETED", "FAILED", "BLOCKED", "HELD"
+  createdAt           DateTime @default(now())
+
+  virtualModel        VirtualModel @relation(fields: [virtualModelId], references: [id])
+  model               Model        @relation(fields: [modelId], references: [id])
+  trace               Trace?
+}
+
+model Trace {
+  id             String   @id @default(cuid())
+  requestId      String   @unique
+  virtualModelId String
+  modelId        String
+  provider       String
+  startedAt      DateTime @default(now())
+  completedAt    DateTime @default(now())
+  durationMs     Int
+  cost           Float
+  riskScore      Int
+  decision       String
+  status         String   @default("SUCCESS")
+  createdAt      DateTime @default(now())
+
+  request        AIRequest      @relation(fields: [requestId], references: [id])
+  virtualModel   VirtualModel   @relation(fields: [virtualModelId], references: [id])
+  model          Model          @relation(fields: [modelId], references: [id])
+  spans          TraceSpan[]
+  humanReview    HumanReviewCase?
+}
+
+model TraceSpan {
+  id          String   @id @default(cuid())
+  traceId     String
+  spanType    String   // "REQUEST_RECEIVED", "GUARDRAIL_CHECK", "BUDGET_CHECK", "ROUTING", "LLM_REQUEST", "LLM_RESPONSE", "PERFORMANCE_EVALUATION", "COST_EVALUATION", "RESPONSIBILITY_EVALUATION", "RISK_SCORING", "POLICY_EVALUATION", "ENFORCEMENT", "RESPONSE_RETURNED"
+  name        String
+  startedAt   DateTime @default(now())
+  completedAt DateTime @default(now())
+  durationMs  Int
+  status      String   @default("OK") // "OK", "ERROR", "VIOLATION", "SKIPPED"
+  metadata    Json?
+
+  trace       Trace    @relation(fields: [traceId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id               String   @id @default(cuid())
+  severity         String   // "INFO", "WARNING", "CRITICAL"
+  type             String   // "BUDGET_THRESHOLD", "PII_DETECTED", "PROMPT_INJECTION", "HIGH_RISK", "POLICY_VIOLATION", "LATENCY_SPIKE"
+  title            String
+  description      String
+  traceId          String?
+  virtualModelId   String?
+  resolved         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  virtualModel     VirtualModel? @relation(fields: [virtualModelId], references: [id])
+}
+
+model HumanReviewCase {
+  id             String   @id @default(cuid())
+  traceId        String   @unique
+  virtualModelId String
+  prompt         String
+  proposedOutput String
+  riskScore      Int
+  reason         String
+  status         String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "MODIFIED"
+  reviewer       String?
+  decision       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  trace          Trace    @relation(fields: [traceId], references: [id])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  actor        String   // "ControlPlane Guard Engine", "System Admin"
+  action       String   // "POLICY_MODIFIED", "REQUEST_BLOCKED", "VIRTUAL_MODEL_DEPLOYED"
+  target       String   // "vm-finance-assistant"
+  details      String
+  traceId      String?
+  metadata     Json?
+}
