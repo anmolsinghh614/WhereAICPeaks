@@ -84,6 +84,16 @@ export default function PlaygroundPage() {
   const [guardrails, setGuardrails] = useState<GuardrailConfig[]>([]);
   const [models, setModels] = useState<FoundationModel[]>([]);
 
+  // Interactive Overrides
+  const [selectedModelId, setSelectedModelId] = useState<string>('mod-gemini2');
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string>('pol-general-enterprise');
+  const [selectedGuardrailIds, setSelectedGuardrailIds] = useState<string[]>([
+    'gr-pii',
+    'gr-prompt-inj',
+    'gr-secrets',
+    'gr-fin-advice',
+  ]);
+
   const [prompt, setPrompt] = useState(PRESET_SCENARIOS[0].prompt);
   const [temperature, setTemperature] = useState(0.3);
   const [maxTokens, setMaxTokens] = useState(1024);
@@ -107,13 +117,31 @@ export default function PlaygroundPage() {
     ])
       .then(([vms, pols, grs, mdls]) => {
         setVirtualModels(vms);
-        if (vms.length > 0) setSelectedVirtualModel(vms[0]);
+        if (vms.length > 0) {
+          setSelectedVirtualModel(vms[0]);
+          setSelectedModelId(vms[0].underlyingModelId);
+          setSelectedPolicyId(vms[0].policyId);
+          setSelectedGuardrailIds(vms[0].guardrailIds || []);
+        }
         setPolicies(pols);
         setGuardrails(grs);
         setModels(mdls);
       })
       .catch((err) => console.error('Failed to load playground dependencies', err));
   }, []);
+
+  const handleSelectVirtualModel = (vm: VirtualModel) => {
+    setSelectedVirtualModel(vm);
+    setSelectedModelId(vm.underlyingModelId);
+    setSelectedPolicyId(vm.policyId);
+    setSelectedGuardrailIds(vm.guardrailIds || []);
+  };
+
+  const handleToggleGuardrailId = (grid: string) => {
+    setSelectedGuardrailIds((prev) =>
+      prev.includes(grid) ? prev.filter((id) => id !== grid) : [...prev, grid]
+    );
+  };
 
   const handleExecutePrompt = async () => {
     if (!prompt.trim() || !selectedVirtualModel || isExecuting) return;
@@ -147,14 +175,17 @@ export default function PlaygroundPage() {
         body: JSON.stringify({
           virtualModelId: selectedVirtualModel.id,
           prompt,
+          modelId: selectedModelId,
+          policyId: selectedPolicyId,
+          guardrailIds: selectedGuardrailIds,
           customParameters: { temperature, maxTokens },
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Execution failed');
+      if (!res.ok) throw new Error(data.error?.message || 'Execution failed');
 
-      const trace: TraceRecord = data.trace;
+      const trace: TraceRecord = data.trace || data;
 
       // Animate remaining steps based on trace outcome
       if (trace.decision === 'BLOCK' && trace.guardrailViolations.length > 0) {
@@ -198,16 +229,16 @@ export default function PlaygroundPage() {
       }
 
       setLatestTrace(trace);
-    } catch (err: unknown) {
-      console.error('Playground execution error', err);
-      updateStep(1, 'FAILED', 'Pipeline execution error');
+    } catch (err) {
+      console.error('Execution error:', err);
+      updateStep(1, 'FAILED', 'Pipeline failure');
     } finally {
       setIsExecuting(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       handleExecutePrompt();
     }
@@ -216,17 +247,23 @@ export default function PlaygroundPage() {
   return (
     <AppLayout
       title="ControlPlane Interactive Playground"
-      subtitle="Evaluate real-time AI governance, token economics, guardrails, and policy enforcement"
+      subtitle="Select AI models, configure real-time guardrails, enforce policies, and inspect execution telemetry"
     >
-      <div className="flex gap-5 h-[calc(100vh-7.5rem)] min-w-0">
-        {/* Left Column: Configuration */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Interactive Configuration */}
         <PlaygroundConfig
           virtualModels={virtualModels}
           selectedVirtualModel={selectedVirtualModel}
-          onSelectVirtualModel={setSelectedVirtualModel}
+          onSelectVirtualModel={handleSelectVirtualModel}
           policies={policies}
+          selectedPolicyId={selectedPolicyId}
+          onSelectPolicyId={setSelectedPolicyId}
           guardrails={guardrails}
+          selectedGuardrailIds={selectedGuardrailIds}
+          onToggleGuardrailId={handleToggleGuardrailId}
           models={models}
+          selectedModelId={selectedModelId}
+          onSelectModelId={setSelectedModelId}
           temperature={temperature}
           setTemperature={setTemperature}
           maxTokens={maxTokens}
@@ -234,11 +271,11 @@ export default function PlaygroundPage() {
           onOpenCreateModelModal={() => setIsCreateModalOpen(true)}
         />
 
-        {/* Center Column: Chat / Execution Engine */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-y-auto pr-1">
-          {/* Preset Scenario Quick Selectors */}
+        {/* Center Column: Execution, Prompts & Response */}
+        <div className="flex-1 space-y-5 min-w-0">
+          {/* Preset Scenario Selector */}
           <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
               Demo Test Scenarios (Instant Evaluation)
             </div>
@@ -247,9 +284,9 @@ export default function PlaygroundPage() {
                 <button
                   key={i}
                   onClick={() => setPrompt(sc.prompt)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 ${sc.color}`}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-all flex items-center gap-1.5 cursor-pointer ${sc.color}`}
                 >
-                  <span className="font-mono text-[9px] font-bold px-1 py-0.2 rounded bg-black/10">
+                  <span className="font-mono text-[9px] px-1 rounded bg-black/10 font-bold">
                     {sc.tag}
                   </span>
                   <span>{sc.label}</span>
@@ -258,278 +295,282 @@ export default function PlaygroundPage() {
             </div>
           </div>
 
-          {/* Prompt Input Box */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2">
+          {/* Prompt Execution Interface */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4.5 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <Send className="w-3.5 h-3.5 text-blue-600" />
                 Prompt Execution Interface
               </label>
               <span className="text-[10px] text-slate-400 font-mono">
-                Press Ctrl + Enter to Send
+                Press <kbd className="px-1 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-600">Ctrl + Enter</kbd> to run
               </span>
             </div>
 
             <textarea
-              rows={3}
+              rows={4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter a prompt to process through ControlPlane..."
-              className="w-full text-xs font-mono text-slate-900 bg-slate-50 border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all resize-none"
+              placeholder="Enter enterprise user prompt or query..."
+              className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all resize-y text-slate-900"
             />
 
             <div className="flex items-center justify-between pt-1">
-              <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                <span>Target: <strong>{selectedVirtualModel?.name || 'None'}</strong></span>
-                <span>•</span>
-                <span className="font-mono">Tokens: ~{Math.round(prompt.length / 4)}</span>
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <span>Target: <strong>{selectedVirtualModel?.name}</strong></span>
+                <span className="text-slate-300">•</span>
+                <span className="font-mono text-[11px] text-indigo-600 font-bold">
+                  {models.find((m) => m.id === selectedModelId)?.name || selectedModelId}
+                </span>
               </div>
 
               <button
                 onClick={handleExecutePrompt}
                 disabled={isExecuting || !prompt.trim()}
-                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all shadow-blue-500/20 disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer"
               >
-                <Send className={`w-3.5 h-3.5 ${isExecuting ? 'animate-pulse' : ''}`} />
-                <span>{isExecuting ? 'Processing ControlPlane...' : 'Execute Request'}</span>
+                {isExecuting ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Executing Pipeline...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Execute Request</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
 
-          {/* Live Pipeline Stepper */}
-          {(isExecuting || latestTrace) && (
-            <PipelineStepper
-              steps={pipelineSteps}
-              currentDecision={latestTrace?.decision}
-            />
-          )}
+          {/* Animated Pipeline Stepper */}
+          <PipelineStepper steps={pipelineSteps} isExecuting={isExecuting} />
 
-          {/* Decision States Output Display */}
-          {latestTrace && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                <div className="flex items-center gap-2">
-                  <FileCheck2 className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    ControlPlane Verified Output
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono text-slate-500">
-                    ID: {latestTrace.id}
-                  </span>
-                  <button
-                    onClick={() => setSelectedTraceId(latestTrace.id)}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 hover:underline"
-                  >
-                    View Trace
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
+          {/* ControlPlane Verified Output Display */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  ControlPlane Verified Output
+                </h3>
               </div>
 
-              {/* STATE: ALLOW */}
-              {latestTrace.decision === 'ALLOW' && (
-                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>REQUEST ALLOWED & DISPATCHED</span>
-                  </div>
-                  <div className="text-xs text-slate-800 font-mono bg-white p-3.5 rounded-lg border border-emerald-200/80 leading-relaxed whitespace-pre-wrap">
-                    {latestTrace.finalResponse}
-                  </div>
-                </div>
-              )}
-
-              {/* STATE: MODIFY (Side-by-Side / Diff Experience) */}
-              {latestTrace.decision === 'MODIFY' && (
-                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      <span>OUTPUT MODIFIED BY CONTROLPLANE GUARDRAILS</span>
-                    </div>
-
-                    {/* View mode switcher */}
-                    <div className="flex items-center bg-white rounded-lg border border-amber-200 p-0.5 text-[10px] font-semibold">
-                      <button
-                        onClick={() => setModifyTab('redacted')}
-                        className={`px-2.5 py-1 rounded ${
-                          modifyTab === 'redacted' ? 'bg-amber-500 text-white' : 'text-amber-800 hover:bg-amber-50'
-                        }`}
-                      >
-                        Sanitized Output
-                      </button>
-                      <button
-                        onClick={() => setModifyTab('original')}
-                        className={`px-2.5 py-1 rounded ${
-                          modifyTab === 'original' ? 'bg-amber-500 text-white' : 'text-amber-800 hover:bg-amber-50'
-                        }`}
-                      >
-                        Raw Output
-                      </button>
-                      <button
-                        onClick={() => setModifyTab('split')}
-                        className={`px-2.5 py-1 rounded flex items-center gap-1 ${
-                          modifyTab === 'split' ? 'bg-amber-500 text-white' : 'text-amber-800 hover:bg-amber-50'
-                        }`}
-                      >
-                        <Split className="w-3 h-3" />
-                        Compare
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-amber-800 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/80 font-medium">
-                    Reason: <strong>{latestTrace.decisionReason}</strong>
-                  </div>
-
-                  {modifyTab === 'split' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider">
-                          Original LLM Output (Unsafe PII)
-                        </span>
-                        <div className="text-xs font-mono text-red-900 bg-red-50/60 p-3 rounded-lg border border-red-200 whitespace-pre-wrap min-h-[100px]">
-                          {latestTrace.originalResponse}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                          ControlPlane Sanitized Output
-                        </span>
-                        <div className="text-xs font-mono text-emerald-900 bg-emerald-50/60 p-3 rounded-lg border border-emerald-200 whitespace-pre-wrap min-h-[100px]">
-                          {latestTrace.finalResponse}
-                        </div>
-                      </div>
-                    </div>
-                  ) : modifyTab === 'original' ? (
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider">
-                        Original Model Output (Raw PII / Secrets)
-                      </span>
-                      <div className="text-xs font-mono text-red-900 bg-red-50/60 p-3.5 rounded-lg border border-red-200 whitespace-pre-wrap">
-                        {latestTrace.originalResponse}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                        Sanitized & Redacted Output (Delivered)
-                      </span>
-                      <div className="text-xs font-mono text-slate-800 bg-white p-3.5 rounded-lg border border-amber-200 whitespace-pre-wrap">
-                        {latestTrace.finalResponse}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* STATE: BLOCK */}
-              {latestTrace.decision === 'BLOCK' && (
-                <div className="p-4 rounded-xl border-2 border-red-300 bg-red-50/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
-                      <XCircle className="w-4 h-4 text-red-600" />
-                      <span>REQUEST BLOCKED BY CONTROLPLANE SAFETY POLICIES</span>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-red-200 text-red-900">
-                      RISK: {latestTrace.riskScore} / 100
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-white rounded-lg border border-red-200 text-xs text-red-800 font-mono">
-                    {latestTrace.finalResponse}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs bg-red-100/50 p-3 rounded-lg border border-red-200/80">
-                    <div>
-                      <span className="text-red-600 text-[10px] uppercase font-bold block">Violation Reason</span>
-                      <span className="font-semibold text-red-950">{latestTrace.decisionReason}</span>
-                    </div>
-                    <div>
-                      <span className="text-red-600 text-[10px] uppercase font-bold block">Policy Applied</span>
-                      <span className="font-semibold text-red-950">{latestTrace.policyStatus}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <button
-                      onClick={() => setSelectedTraceId(latestTrace.id)}
-                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>Inspect Audit Trace</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STATE: ESCALATE */}
-              {latestTrace.decision === 'ESCALATE' && (
-                <div className="p-4 rounded-xl border-2 border-purple-300 bg-purple-50/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-purple-900 font-bold text-xs">
-                      <Lock className="w-4 h-4 text-purple-600" />
-                      <span>HUMAN REVIEW REQUIRED (HIGH RISK INTERACTION)</span>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-purple-200 text-purple-900">
-                      RISK: {latestTrace.riskScore} / 100
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-white rounded-lg border border-purple-200 text-xs text-purple-900 font-mono">
-                    {latestTrace.finalResponse}
-                  </div>
-
-                  <div className="text-xs text-purple-800 bg-purple-100/60 p-2.5 rounded-lg border border-purple-200/80">
-                    Reason: <strong>{latestTrace.decisionReason}</strong>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-purple-700 font-medium">
-                      Incident dispatched to Compliance Queue
-                    </span>
-                    <Link
-                      href="/reviews"
-                      className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      <span>Open Review Case</span>
-                    </Link>
-                  </div>
+              {latestTrace && (
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className="text-slate-400">ID: {latestTrace.id}</span>
+                  <button
+                    onClick={() => setSelectedTraceId(latestTrace.id)}
+                    className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 hover:underline"
+                  >
+                    View Trace →
+                  </button>
                 </div>
               )}
             </div>
-          )}
+
+            {!latestTrace && !isExecuting && (
+              <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                <div className="p-3 rounded-full bg-slate-50 border border-slate-200">
+                  <Sparkles className="w-5 h-5 text-slate-400" />
+                </div>
+                <span>Select a scenario above or enter a prompt, then click <strong>Execute Request</strong></span>
+              </div>
+            )}
+
+            {isExecuting && !latestTrace && (
+              <div className="py-10 text-center text-slate-500 text-xs space-y-2 animate-pulse">
+                <div className="font-semibold">Routing request through ControlPlane policy & safety guardrails...</div>
+                <div className="text-[11px] text-slate-400 font-mono">Evaluating prompt injection, PII patterns, latency budgets, and risk matrix</div>
+              </div>
+            )}
+
+            {latestTrace && (
+              <div className="space-y-4">
+                {/* 1. ALLOW State */}
+                {latestTrace.decision === 'ALLOW' && (
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>REQUEST ALLOWED & DISPATCHED</span>
+                    </div>
+                    <div className="text-xs font-sans text-slate-800 bg-white p-3 rounded-lg border border-emerald-100 leading-relaxed">
+                      {latestTrace.finalResponse}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. MODIFY State (PII Redacted) */}
+                {latestTrace.decision === 'MODIFY' && (
+                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <span>PII DETECTED & SANITIZED IN REAL-TIME</span>
+                      </div>
+
+                      {/* View Mode Tabs */}
+                      <div className="flex bg-amber-100 p-0.5 rounded-lg text-[10px] font-semibold">
+                        <button
+                          onClick={() => setModifyTab('redacted')}
+                          className={`px-2.5 py-1 rounded transition-all ${
+                            modifyTab === 'redacted'
+                              ? 'bg-white text-amber-900 shadow-xs'
+                              : 'text-amber-700 hover:text-amber-900'
+                          }`}
+                        >
+                          Sanitized
+                        </button>
+                        <button
+                          onClick={() => setModifyTab('original')}
+                          className={`px-2.5 py-1 rounded transition-all ${
+                            modifyTab === 'original'
+                              ? 'bg-white text-amber-900 shadow-xs'
+                              : 'text-amber-700 hover:text-amber-900'
+                          }`}
+                        >
+                          Raw Original
+                        </button>
+                        <button
+                          onClick={() => setModifyTab('split')}
+                          className={`px-2.5 py-1 rounded transition-all ${
+                            modifyTab === 'split'
+                              ? 'bg-white text-amber-900 shadow-xs'
+                              : 'text-amber-700 hover:text-amber-900'
+                          }`}
+                        >
+                          Compare
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-amber-800">
+                      {latestTrace.decisionReason}
+                    </p>
+
+                    {/* Diff Views */}
+                    {modifyTab === 'redacted' && (
+                      <div className="text-xs font-sans text-slate-800 bg-white p-3.5 rounded-lg border border-amber-200 leading-relaxed">
+                        {latestTrace.finalResponse}
+                      </div>
+                    )}
+
+                    {modifyTab === 'original' && (
+                      <div className="text-xs font-sans text-slate-800 bg-red-50/80 p-3.5 rounded-lg border border-red-200 leading-relaxed font-mono">
+                        <div className="text-[10px] font-bold text-red-700 uppercase mb-1">
+                          Unsanitized Model Output (Contains PII):
+                        </div>
+                        {latestTrace.originalResponse || latestTrace.finalResponse}
+                      </div>
+                    )}
+
+                    {modifyTab === 'split' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                          <div className="text-[10px] font-bold text-red-700 uppercase mb-1">
+                            Original (Unsanitized)
+                          </div>
+                          <div className="font-mono text-[11px] text-slate-800">
+                            {latestTrace.originalResponse}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <div className="text-[10px] font-bold text-emerald-800 uppercase mb-1">
+                            ControlPlane Sanitized (Delivered)
+                          </div>
+                          <div className="font-sans text-[11px] text-slate-800">
+                            {latestTrace.finalResponse}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. BLOCK State (Prompt Injection / Harmful) */}
+                {latestTrace.decision === 'BLOCK' && (
+                  <div className="p-4 rounded-xl border border-red-200 bg-red-50/60 space-y-3">
+                    <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
+                      <XCircle className="w-4 h-4 text-red-600" />
+                      <span>SECURITY POLICY INTERVENTION: REQUEST BLOCKED</span>
+                    </div>
+                    <p className="text-xs text-red-800">
+                      {latestTrace.decisionReason}
+                    </p>
+                    <div className="p-3 bg-white rounded-lg border border-red-200 text-xs font-mono text-slate-700">
+                      <div className="text-[10px] font-bold text-red-600 uppercase mb-1">
+                        Triggered Safety Shields:
+                      </div>
+                      <ul className="list-disc pl-4 space-y-1 text-[11px]">
+                        {latestTrace.guardrailViolations.map((v, idx) => (
+                          <li key={idx}>{v}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. ESCALATE State (Human Review Required) */}
+                {latestTrace.decision === 'ESCALATE' && (
+                  <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-purple-900 font-bold text-xs">
+                        <Lock className="w-4 h-4 text-purple-600" />
+                        <span>COMPLIANCE ESCALATION: HELD FOR HUMAN REVIEW</span>
+                      </div>
+                      <Link
+                        href="/reviews"
+                        className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 hover:underline"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Open Review Case →</span>
+                      </Link>
+                    </div>
+                    <p className="text-xs text-purple-800 leading-relaxed">
+                      {latestTrace.decisionReason}
+                    </p>
+                    <div className="p-3 bg-white rounded-lg border border-purple-100 text-xs text-slate-600">
+                      <span className="font-semibold text-slate-800">Status:</span> This query has been placed in the compliance review hold queue with Risk Score <strong>{latestTrace.riskScore}/100</strong>. Response will not be dispatched until signed off by a designated risk officer.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right Column: ControlPlane Decision Panel */}
-        <PlaygroundDecision
-          trace={latestTrace}
-          onOpenTrace={(id) => setSelectedTraceId(id)}
-          isLoading={isExecuting}
-        />
+        {/* Right Column: Real-Time Decision & Telemetry Card */}
+        <div className="w-80 shrink-0">
+          <PlaygroundDecision
+            trace={latestTrace}
+            isExecuting={isExecuting}
+            onOpenTraceDrawer={() => latestTrace && setSelectedTraceId(latestTrace.id)}
+          />
+        </div>
       </div>
 
-      {/* Slide-over Live Trace Drawer */}
+      {/* Slide-over Full Execution Trace Drawer */}
       <TraceDrawer
         traceId={selectedTraceId}
         onClose={() => setSelectedTraceId(null)}
       />
 
-      {/* Modal for Creating Virtual Model */}
+      {/* Modal for Creating Logical Virtual Endpoint */}
       <CreateVirtualModelModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreated={(newModel) => {
-          setVirtualModels((prev) => [newModel, ...prev]);
-          setSelectedVirtualModel(newModel);
-        }}
         policies={policies}
         guardrails={guardrails}
         models={models}
+        onCreated={(newVm) => {
+          setVirtualModels((prev) => [...prev, newVm]);
+          setSelectedVirtualModel(newVm);
+          setSelectedModelId(newVm.underlyingModelId);
+          setSelectedPolicyId(newVm.policyId);
+          setSelectedGuardrailIds(newVm.guardrailIds || []);
+        }}
       />
     </AppLayout>
   );

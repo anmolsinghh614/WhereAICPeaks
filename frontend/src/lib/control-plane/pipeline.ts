@@ -14,6 +14,10 @@ import { TraceRecord, TraceSpan } from '@/types';
 export interface ExecuteControlPlaneParams {
   virtualModelId: string;
   prompt: string;
+  modelId?: string;
+  provider?: string;
+  policyId?: string;
+  guardrailIds?: string[];
   scenario?: string;
   customParameters?: {
     temperature?: number;
@@ -59,21 +63,33 @@ export async function executeControlPlane(
   const traceId = `tr-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
   const requestId = `req-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
 
-  // 1. Resolve Virtual Model & Policy
+  // 1. Resolve Virtual Model, Selected Foundation Model, Policy & Guardrails
   const virtualModel =
     virtualModelManager.getById(params.virtualModelId) ||
     virtualModelManager.getAll()[0];
+
   const underlyingModel =
+    (params.modelId ? modelRegistry.getById(params.modelId) : null) ||
     modelRegistry.getById(virtualModel.underlyingModelId) ||
     modelRegistry.getAll()[0];
+
+  const activeProvider =
+    params.provider || underlyingModel.provider || virtualModel.provider;
+
   const policy =
+    (params.policyId ? policyEngine.getById(params.policyId) : null) ||
     policyEngine.getById(virtualModel.policyId) ||
     policyEngine.getAll()[0];
+
+  const activeGuardrailIds =
+    params.guardrailIds && params.guardrailIds.length > 0
+      ? params.guardrailIds
+      : virtualModel.guardrailIds;
 
   // 2. STAGE 1: INPUT GUARDRAILS CHECK
   const inputGuardrails = guardrailEngine.evaluateInput(
     params.prompt,
-    virtualModel.guardrailIds
+    activeGuardrailIds
   );
 
   // 3. STAGE 2: BUDGET CHECK
@@ -101,7 +117,7 @@ export async function executeControlPlane(
       timestamp: new Date().toISOString(),
       virtualModelId: virtualModel.id,
       virtualModelName: virtualModel.name,
-      provider: virtualModel.provider,
+      provider: activeProvider,
       model: underlyingModel.name,
       prompt: params.prompt,
       finalResponse: `Request blocked by ControlPlane: ${reason}`,
@@ -165,7 +181,7 @@ export async function executeControlPlane(
   }
 
   // 4. STAGE 3 & 4: MODEL ROUTING & LLM EXECUTION
-  const llmResponse = await modelRouter.routeAndExecute(virtualModel.provider, {
+  const llmResponse = await modelRouter.routeAndExecute(activeProvider, {
     model: underlyingModel.name,
     prompt: params.prompt,
     systemPrompt: virtualModel.systemPrompt,
@@ -177,14 +193,14 @@ export async function executeControlPlane(
   // 5. STAGE 5: OUTPUT GUARDRAILS CHECK
   const outputGuardrails = guardrailEngine.evaluateOutput(
     llmResponse.content,
-    virtualModel.guardrailIds
+    activeGuardrailIds
   );
 
   // 6. STAGE 6: PERFORMANCE EVALUATION
   const performance = performanceEngine.evaluate(
     llmResponse.content,
     llmResponse.latencyMs,
-    underlyingModel.latencyAvgMs
+    underlyingModel.latencyAvgMs || 700
   );
 
   // 7. STAGE 7: COST CALCULATION
@@ -211,7 +227,7 @@ export async function executeControlPlane(
 
   // 10. STAGE 10: POLICY ENGINE
   const policyResult = policyEngine.evaluatePolicy(
-    virtualModel.policyId,
+    policy.id,
     risk,
     allViolations,
     costCalculation.totalCost
@@ -232,7 +248,7 @@ export async function executeControlPlane(
     timestamp: new Date().toISOString(),
     virtualModelId: virtualModel.id,
     virtualModelName: virtualModel.name,
-    provider: virtualModel.provider,
+    provider: activeProvider,
     model: underlyingModel.name,
     prompt: params.prompt,
     originalResponse: enforcement.originalResponse,

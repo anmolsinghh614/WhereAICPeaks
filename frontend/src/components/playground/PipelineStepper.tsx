@@ -14,9 +14,10 @@ export interface PipelineStep {
 interface PipelineStepperProps {
   steps: PipelineStep[];
   currentDecision?: DecisionState | null;
+  isExecuting?: boolean;
 }
 
-export function PipelineStepper({ steps, currentDecision }: PipelineStepperProps) {
+export function PipelineStepper({ steps, currentDecision, isExecuting }: PipelineStepperProps) {
   return (
     <div className="bg-slate-900 text-slate-100 rounded-xl p-4 border border-slate-800 shadow-md">
       <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">

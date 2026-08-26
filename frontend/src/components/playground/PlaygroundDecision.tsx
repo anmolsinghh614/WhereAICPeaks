@@ -6,12 +6,26 @@ import { Shield, ShieldAlert, Zap, DollarSign, Clock, CheckCircle2, AlertTriangl
 
 interface PlaygroundDecisionProps {
   trace: TraceRecord | null;
-  onOpenTrace: (traceId: string) => void;
-  isLoading: boolean;
+  onOpenTrace?: (traceId: string) => void;
+  onOpenTraceDrawer?: () => void;
+  isLoading?: boolean;
+  isExecuting?: boolean;
 }
 
-export function PlaygroundDecision({ trace, onOpenTrace, isLoading }: PlaygroundDecisionProps) {
-  if (isLoading) {
+export function PlaygroundDecision({
+  trace,
+  onOpenTrace,
+  onOpenTraceDrawer,
+  isLoading,
+  isExecuting,
+}: PlaygroundDecisionProps) {
+  const loading = isLoading || isExecuting;
+  const handleOpen = () => {
+    if (onOpenTraceDrawer) onOpenTraceDrawer();
+    else if (onOpenTrace && trace) onOpenTrace(trace.id);
+  };
+
+  if (loading) {
     return (
       <div className="w-80 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4 shrink-0 animate-pulse">
         <div className="h-5 bg-slate-200 rounded w-1/2"></div>
@@ -189,8 +203,8 @@ export function PlaygroundDecision({ trace, onOpenTrace, isLoading }: Playground
 
       {/* Button to Open Live Trace Drawer */}
       <button
-        onClick={() => onOpenTrace(trace.id)}
-        className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm group"
+        onClick={handleOpen}
+        className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm group cursor-pointer"
       >
         <Activity className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
         <span>View Full Execution Trace</span>

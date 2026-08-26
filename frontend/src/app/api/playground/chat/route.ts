@@ -5,6 +5,10 @@ import { z } from 'zod';
 const ChatSchema = z.object({
   virtualModelId: z.string().min(1, 'virtualModelId is required'),
   prompt: z.string().min(1, 'prompt cannot be empty'),
+  modelId: z.string().optional(),
+  provider: z.string().optional(),
+  policyId: z.string().optional(),
+  guardrailIds: z.array(z.string()).optional(),
   scenario: z.string().optional(),
   customParameters: z
     .object({
@@ -35,6 +39,10 @@ export async function POST(req: NextRequest) {
     const result = await executeControlPlane({
       virtualModelId: parsed.data.virtualModelId,
       prompt: parsed.data.prompt,
+      modelId: parsed.data.modelId,
+      provider: parsed.data.provider,
+      policyId: parsed.data.policyId,
+      guardrailIds: parsed.data.guardrailIds,
       scenario: parsed.data.scenario,
       customParameters: parsed.data.customParameters,
     });

@@ -17,17 +17,17 @@ export function CreateVirtualModelModal({
   isOpen,
   onClose,
   onCreated,
-  policies,
-  guardrails,
-  models,
+  policies = [],
+  guardrails = [],
+  models = [],
 }: CreateVirtualModelModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [underlyingModelId, setUnderlyingModelId] = useState(models[0]?.id || 'openai-gpt-4-1');
+  const [underlyingModelId, setUnderlyingModelId] = useState(models?.[0]?.id || 'mod-gemini2');
   const [systemPrompt, setSystemPrompt] = useState('You are an enterprise AI assistant compliant with ControlPlane policies.');
   const [temperature, setTemperature] = useState(0.5);
   const [maxTokens, setMaxTokens] = useState(1024);
-  const [policyId, setPolicyId] = useState(policies[0]?.id || 'pol-general-enterprise');
+  const [policyId, setPolicyId] = useState(policies?.[0]?.id || 'pol-general-enterprise');
   const [selectedGuardrails, setSelectedGuardrails] = useState<string[]>(['gr-pii', 'gr-prompt-inj', 'gr-secrets']);
   const [dailyBudget, setDailyBudget] = useState(100.0);
   const [perRequestBudget, setPerRequestBudget] = useState(0.05);
