@@ -244,7 +244,7 @@ export default function TraceDetailPage() {
                   }
 
                   const startTimestamp = trace.spans?.[0]?.startTime || 0;
-                  const spanOffset = Math.max(0, span.startTime - startTimestamp);
+                  const spanOffset = Math.max(0, (span.startTime || 0) - startTimestamp);
                   const leftPercent = Math.min(95, Math.max(0, (spanOffset / (trace.latencyMs || 1)) * 100));
                   const widthPercent = Math.min(100 - leftPercent, Math.max(3, (span.durationMs / (trace.latencyMs || 1)) * 100));
 

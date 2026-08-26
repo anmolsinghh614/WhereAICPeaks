@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Sparkles, Shield, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Play, Sparkles, Shield, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, Activity, Zap } from 'lucide-react';
 
 interface HeaderProps {
   title?: string;
@@ -19,7 +19,7 @@ export function Header({ title, subtitle }: HeaderProps) {
       const res = await fetch('/api/demo/run', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        setDemoSuccessMsg('Demo executed: 5 scenarios processed across ALLOW, MODIFY, BLOCK & ESCALATE');
+        setDemoSuccessMsg('5 scenarios evaluated across ALLOW, MODIFY, BLOCK & ESCALATE');
         setTimeout(() => setDemoSuccessMsg(null), 5000);
       }
     } catch (error) {
@@ -30,58 +30,61 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between shrink-0 select-none z-10">
-      <div className="flex items-center gap-4">
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 lg:px-8 flex items-center justify-between shrink-0 select-none z-20 sticky top-0">
+      <div className="flex items-center gap-5">
         {title && (
           <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-sm lg:text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
               {title}
             </h1>
-            {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="text-[11px] text-slate-500 font-normal leading-none mt-0.5">{subtitle}</p>}
           </div>
         )}
 
-        {/* Concept Architecture Flow Badge */}
-        <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-slate-100/90 rounded-md border border-slate-200 text-[11px] text-slate-600 font-medium font-mono">
-          <span className="text-slate-800 font-semibold">AI APPS</span>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <span className="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60">
-            CONTROLPLANE.AI
+        {/* Enterprise Architecture Flow Breadcrumb */}
+        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/70 text-[10px] text-slate-600 font-mono">
+          <span className="text-slate-700 font-semibold">APP INGEST</span>
+          <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
+          <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60 flex items-center gap-1">
+            <Shield className="w-2.5 h-2.5" />
+            CONTROLPLANE
           </span>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <span className="text-indigo-600 font-semibold">POLICY ENGINE</span>
-          <ArrowRight className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-800 font-semibold">MODELS</span>
+          <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
+          <span className="text-indigo-600 font-semibold">GOVERNANCE</span>
+          <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
+          <span className="text-slate-700 font-semibold">MODELS</span>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         {demoSuccessMsg && (
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium animate-fade-in">
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium animate-fade-in shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>{demoSuccessMsg}</span>
           </div>
         )}
 
-        {/* Global Demo Mode Simulation Button */}
+        {/* Global Demo Simulation Action */}
         <button
           onClick={handleRunDemo}
           disabled={isRunningDemo}
-          className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all shadow-blue-500/20 disabled:opacity-50"
-          title="Simulate realistic multi-tenant enterprise traffic across ALLOW, MODIFY, BLOCK, and ESCALATE"
+          className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm shadow-blue-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
         >
           {isRunningDemo ? (
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <Sparkles className="w-3.5 h-3.5 text-blue-200" />
           )}
-          <span>{isRunningDemo ? 'Simulating Engine...' : 'Run Demo Simulation'}</span>
+          <span>{isRunningDemo ? 'Executing Simulation...' : 'Run Demo Simulation'}</span>
         </button>
 
-        {/* Live SSE status indicator */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="font-mono text-slate-700 font-medium">LIVE STREAM</span>
+        {/* Live SSE Telemetry Indicator */}
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] shadow-2xs">
+          <div className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </div>
+          <span className="font-mono text-slate-700 font-semibold text-[10px]">LIVE STREAM</span>
         </div>
       </div>
     </header>

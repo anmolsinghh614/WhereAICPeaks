@@ -247,7 +247,7 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
                       }
 
                       // Calculate span start offset and duration percentage for the visual bar
-                      const spanOffset = Math.max(0, span.startTime - startTimestamp);
+                      const spanOffset = Math.max(0, (span.startTime || 0) - startTimestamp);
                       const leftPercent = Math.min(95, Math.max(0, (spanOffset / totalDuration) * 100));
                       const widthPercent = Math.min(100 - leftPercent, Math.max(3, (span.durationMs / totalDuration) * 100));
 
