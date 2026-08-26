@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TraceRecord, TraceSpan } from '@/types';
 import {
   X,
@@ -33,6 +34,23 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
   const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({});
   const [viewRawJson, setViewRawJson] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Keyboard shortcut listener for ESC key
+  useEffect(() => {
+    if (!traceId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [traceId, onClose]);
 
   useEffect(() => {
     if (!traceId) return;
@@ -53,7 +71,7 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
       .finally(() => setLoading(false));
   }, [traceId, initialTrace]);
 
-  if (!traceId) return null;
+  if (!traceId || !mounted) return null;
 
   const toggleSpan = (id: string) => {
     setExpandedSpans((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -69,18 +87,23 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
   const totalDuration = trace?.latencyMs || 1;
   const startTimestamp = trace?.spans?.[0]?.startTime || 0;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-xs flex justify-end animate-fade-in">
-      <div className="w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 overflow-hidden animate-slide-left">
-        {/* Drawer Header */}
-        <div className="h-16 px-6 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
+  const drawerContent = (
+    <div
+      className="fixed inset-0 z-[9999] overflow-hidden bg-slate-950/70 backdrop-blur-sm flex justify-end transition-opacity duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-2xl bg-white h-screen shadow-2xl flex flex-col border-l border-slate-200 overflow-hidden relative z-10 animate-in slide-in-from-right duration-200">
+        {/* Drawer Header - Sticky Pinned at Top */}
+        <div className="h-16 px-6 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800 z-20 shadow-md">
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
               <Activity className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-bold">{trace?.id || traceId}</span>
+                <span className="font-mono text-sm font-bold text-white">{trace?.id || traceId}</span>
                 {trace && (
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
@@ -104,21 +127,25 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewRawJson(!viewRawJson)}
-              className="px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-700"
             >
               <Code2 className="w-3.5 h-3.5" />
               <span>{viewRawJson ? 'Waterfall' : 'Raw JSON'}</span>
             </button>
+
+            {/* High-Visibility Close Button */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-white transition-all cursor-pointer border border-red-500/40 font-semibold text-xs"
+              title="Close Drawer (Press Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-2" />
+              <span>Close</span>
             </button>
           </div>
         </div>
 
-        {/* Drawer Body */}
+        {/* Drawer Body - Scrollable Content */}
         {loading && !trace ? (
           <div className="flex-1 p-6 space-y-4 animate-pulse">
             <div className="h-16 bg-slate-100 rounded-xl"></div>
@@ -329,7 +356,19 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
         ) : (
           <div className="p-6 text-center text-slate-500 text-xs">Trace details not found.</div>
         )}
+
+        {/* Sticky Footer Bar */}
+        <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0 z-20">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+          >
+            Close Trace Drawer
+          </button>
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(drawerContent, document.body);
 }
