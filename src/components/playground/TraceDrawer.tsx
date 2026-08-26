@@ -18,6 +18,7 @@ import {
   Code2,
   Copy,
   Check,
+  Zap,
 } from 'lucide-react';
 
 interface TraceDrawerProps {
@@ -38,11 +39,6 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
 
     if (initialTrace && initialTrace.id === traceId) {
       setTrace(initialTrace);
-      const expanded: Record<string, boolean> = {};
-      initialTrace.spans?.forEach((s: TraceSpan) => {
-        expanded[s.id] = true;
-      });
-      setExpandedSpans(expanded);
     }
 
     setLoading(true);
@@ -51,11 +47,6 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
       .then((data) => {
         if (!data.error) {
           setTrace(data);
-          const expanded: Record<string, boolean> = {};
-          data.spans?.forEach((s: TraceSpan) => {
-            expanded[s.id] = true;
-          });
-          setExpandedSpans(expanded);
         }
       })
       .catch((err) => console.error('Failed to load trace from API', err))
@@ -75,13 +66,16 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const totalDuration = trace?.latencyMs || 1;
+  const startTimestamp = trace?.spans?.[0]?.startTime || 0;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-fade-in">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-xs flex justify-end animate-fade-in">
       <div className="w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 overflow-hidden animate-slide-left">
         {/* Drawer Header */}
         <div className="h-16 px-6 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
               <Activity className="w-4 h-4" />
             </div>
             <div>
@@ -103,21 +97,21 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-slate-400">Live Execution Trace Waterfall</span>
+              <span className="text-[10px] text-slate-400">Execution Waterfall & Observability Ledger</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewRawJson(!viewRawJson)}
-              className="px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-colors"
+              className="px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Code2 className="w-3.5 h-3.5" />
               <span>{viewRawJson ? 'Waterfall' : 'Raw JSON'}</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -125,7 +119,7 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
         </div>
 
         {/* Drawer Body */}
-        {loading ? (
+        {loading && !trace ? (
           <div className="flex-1 p-6 space-y-4 animate-pulse">
             <div className="h-16 bg-slate-100 rounded-xl"></div>
             <div className="h-48 bg-slate-100 rounded-xl"></div>
@@ -144,7 +138,7 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
                 <span className="font-mono font-bold text-slate-900 text-sm">${trace.costUsd.toFixed(5)}</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Calculated Risk</span>
+                <span className="text-slate-500 text-[10px] uppercase font-bold block">Risk Score</span>
                 <span className="font-mono font-bold text-slate-900 text-sm">{trace.riskScore} / 100</span>
               </div>
               <div>
@@ -159,9 +153,9 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
               <div className="relative">
                 <button
                   onClick={copyJson}
-                  className="absolute top-3 right-3 px-2 py-1 bg-slate-800 text-slate-300 hover:text-white rounded text-xs flex items-center gap-1 font-mono"
+                  className="absolute top-3 right-3 px-2 py-1 bg-slate-800 text-slate-300 hover:text-white rounded text-xs flex items-center gap-1 font-mono cursor-pointer"
                 >
-                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
                 <pre className="p-4 bg-slate-950 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto border border-slate-800 max-h-[600px]">
@@ -170,7 +164,7 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
               </div>
             ) : (
               <>
-                {/* Prompt & Completion Inspection */}
+                {/* Payload Inspection */}
                 <div className="space-y-3">
                   <div className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                     Payload Inspection
@@ -220,16 +214,25 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
                   </div>
                 </div>
 
-                {/* Execution Waterfall Spans */}
+                {/* Distributed Waterfall Spans */}
                 <div>
-                  <div className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
+                  <div className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center justify-between">
                     <span>Execution Spans ({trace.spans?.length || 0})</span>
-                    <span className="text-[10px] text-slate-500 font-normal font-mono">
-                      Total: {trace.latencyMs}ms
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Total Latency: {trace.latencyMs} ms
                     </span>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* Timeline Scale Ruler */}
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono px-3 py-1 bg-slate-100/70 rounded-t-lg border border-b-0 border-slate-200">
+                    <span>0 ms</span>
+                    <span>{Math.round(totalDuration * 0.25)} ms</span>
+                    <span>{Math.round(totalDuration * 0.5)} ms</span>
+                    <span>{Math.round(totalDuration * 0.75)} ms</span>
+                    <span>{totalDuration} ms</span>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-b-lg divide-y divide-slate-100 bg-white overflow-hidden shadow-2xs">
                     {trace.spans?.map((span, idx) => {
                       const isExpanded = expandedSpans[span.id];
                       let StatusIcon = CheckCircle2;
@@ -238,47 +241,81 @@ export function TraceDrawer({ traceId, initialTrace, onClose }: TraceDrawerProps
                       if (span.status === 'MODIFIED' || span.status === 'WARNING') {
                         StatusIcon = AlertTriangle;
                         statusColor = 'text-amber-500';
-                      } else if (span.status === 'BLOCKED' || span.status === 'FAILED') {
+                      } else if (span.status === 'BLOCKED' || span.status === 'FAILED' || span.status === 'VIOLATION') {
                         StatusIcon = XCircle;
                         statusColor = 'text-red-500';
                       }
 
+                      // Calculate span start offset and duration percentage for the visual bar
+                      const spanOffset = Math.max(0, span.startTime - startTimestamp);
+                      const leftPercent = Math.min(95, Math.max(0, (spanOffset / totalDuration) * 100));
+                      const widthPercent = Math.min(100 - leftPercent, Math.max(3, (span.durationMs / totalDuration) * 100));
+
                       return (
-                        <div
-                          key={span.id}
-                          className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-2xs"
-                        >
+                        <div key={span.id} className="transition-colors hover:bg-slate-50/80">
                           <button
                             onClick={() => toggleSpan(span.id)}
-                            className="w-full px-3.5 py-2.5 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+                            className="w-full px-3 py-2.5 flex items-center gap-3 text-left cursor-pointer"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <StatusIcon className={`w-4 h-4 ${statusColor} shrink-0`} />
-                              <span className="text-xs font-semibold text-slate-800">
+                            {/* Left: Index & Name */}
+                            <div className="flex items-center gap-2 min-w-[200px] max-w-[240px] truncate">
+                              <StatusIcon className={`w-3.5 h-3.5 ${statusColor} shrink-0`} />
+                              <span className="text-[11px] font-semibold text-slate-800 truncate">
                                 {idx + 1}. {span.name}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                              <span className="font-mono text-[11px] font-bold text-slate-600">
+                            {/* Center: Visual Timeline Waterfall Bar */}
+                            <div className="flex-1 h-3 bg-slate-100 rounded-full relative overflow-hidden">
+                              <div
+                                className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${
+                                  span.status === 'VIOLATION' || span.status === 'FAILED' || span.status === 'BLOCKED'
+                                    ? 'bg-red-500'
+                                    : span.status === 'MODIFIED' || span.status === 'WARNING'
+                                    ? 'bg-amber-500'
+                                    : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                                }`}
+                                style={{
+                                  left: `${leftPercent}%`,
+                                  width: `${widthPercent}%`,
+                                }}
+                              />
+                            </div>
+
+                            {/* Right: Latency & Chevron */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-mono text-[10px] font-bold text-slate-600 min-w-[45px] text-right">
                                 {span.durationMs} ms
                               </span>
                               {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-slate-400" />
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                               )}
                             </div>
                           </button>
 
+                          {/* Expanded Span Details Card */}
                           {isExpanded && (
-                            <div className="px-3.5 pb-3 pt-1 border-t border-slate-100 bg-slate-50/60">
-                              <div className="text-[10px] font-mono text-slate-500 mb-1">
-                                Stage: {span.stage} | Timestamp: {span.timestamp}
+                            <div className="px-4 py-3 bg-slate-50/90 border-t border-slate-100 text-xs space-y-2">
+                              <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                                <div className="bg-white p-2 rounded border border-slate-200">
+                                  <span className="text-slate-400 block uppercase">Span Type</span>
+                                  <span className="font-bold text-slate-800">{span.type}</span>
+                                </div>
+                                <div className="bg-white p-2 rounded border border-slate-200">
+                                  <span className="text-slate-400 block uppercase">Duration</span>
+                                  <span className="font-bold text-slate-800">{span.durationMs} ms ({((span.durationMs / totalDuration) * 100).toFixed(1)}%)</span>
+                                </div>
+                                <div className="bg-white p-2 rounded border border-slate-200">
+                                  <span className="text-slate-400 block uppercase">Status</span>
+                                  <span className={`font-bold ${statusColor}`}>{span.status}</span>
+                                </div>
                               </div>
-                              <pre className="p-2 bg-slate-900 text-slate-200 font-mono text-[11px] rounded border border-slate-800 overflow-x-auto">
-                                {JSON.stringify(span.details, null, 2)}
-                              </pre>
+
+                              <div className="p-2.5 bg-white rounded border border-slate-200 text-[11px] text-slate-600 font-sans">
+                                <strong>Inspection Note:</strong> {span.name} completed successfully in {span.durationMs}ms with state <strong>{span.status}</strong>.
+                              </div>
                             </div>
                           )}
                         </div>

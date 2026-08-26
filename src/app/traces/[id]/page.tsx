@@ -216,11 +216,20 @@ export default function TraceDetailPage() {
                   Execution Waterfall Spans ({trace.spans?.length || 0})
                 </h3>
                 <span className="text-xs font-mono text-slate-500">
-                  Total Engine Time: {trace.latencyMs}ms
+                  Total Latency: {trace.latencyMs} ms
                 </span>
               </div>
 
-              <div className="space-y-2.5">
+              {/* Timeline Ruler */}
+              <div className="flex justify-between text-[9px] text-slate-400 font-mono px-3 py-1 bg-slate-100/70 rounded-t-lg border border-b-0 border-slate-200">
+                <span>0 ms</span>
+                <span>{Math.round(trace.latencyMs * 0.25)} ms</span>
+                <span>{Math.round(trace.latencyMs * 0.5)} ms</span>
+                <span>{Math.round(trace.latencyMs * 0.75)} ms</span>
+                <span>{trace.latencyMs} ms</span>
+              </div>
+
+              <div className="border border-slate-200 rounded-b-lg divide-y divide-slate-100 bg-white overflow-hidden shadow-2xs">
                 {trace.spans?.map((span, idx) => {
                   const isExpanded = expandedSpans[span.id];
                   let StatusIcon = CheckCircle2;
@@ -229,29 +238,48 @@ export default function TraceDetailPage() {
                   if (span.status === 'MODIFIED' || span.status === 'WARNING') {
                     StatusIcon = AlertTriangle;
                     statusColor = 'text-amber-500';
-                  } else if (span.status === 'BLOCKED' || span.status === 'FAILED') {
+                  } else if (span.status === 'BLOCKED' || span.status === 'FAILED' || span.status === 'VIOLATION') {
                     StatusIcon = XCircle;
                     statusColor = 'text-red-500';
                   }
 
+                  const startTimestamp = trace.spans?.[0]?.startTime || 0;
+                  const spanOffset = Math.max(0, span.startTime - startTimestamp);
+                  const leftPercent = Math.min(95, Math.max(0, (spanOffset / (trace.latencyMs || 1)) * 100));
+                  const widthPercent = Math.min(100 - leftPercent, Math.max(3, (span.durationMs / (trace.latencyMs || 1)) * 100));
+
                   return (
-                    <div
-                      key={span.id}
-                      className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-2xs"
-                    >
+                    <div key={span.id} className="transition-colors hover:bg-slate-50/80">
                       <button
                         onClick={() => toggleSpan(span.id)}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+                        className="w-full px-4 py-3 flex items-center gap-4 text-left cursor-pointer"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-[280px] max-w-[320px] truncate">
                           <StatusIcon className={`w-4 h-4 ${statusColor} shrink-0`} />
-                          <span className="text-xs font-bold text-slate-800">
-                            Span {idx + 1}: {span.name}
+                          <span className="text-xs font-bold text-slate-800 truncate">
+                            {idx + 1}. {span.name}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <span className="font-mono text-xs font-bold text-slate-700">
+                        {/* Visual Waterfall Bar */}
+                        <div className="flex-1 h-3 bg-slate-100 rounded-full relative overflow-hidden">
+                          <div
+                            className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${
+                              span.status === 'VIOLATION' || span.status === 'FAILED' || span.status === 'BLOCKED'
+                                ? 'bg-red-500'
+                                : span.status === 'MODIFIED' || span.status === 'WARNING'
+                                ? 'bg-amber-500'
+                                : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                            }`}
+                            style={{
+                              left: `${leftPercent}%`,
+                              width: `${widthPercent}%`,
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="font-mono text-xs font-bold text-slate-700 min-w-[55px] text-right">
                             {span.durationMs} ms
                           </span>
                           {isExpanded ? (
@@ -263,13 +291,25 @@ export default function TraceDetailPage() {
                       </button>
 
                       {isExpanded && (
-                        <div className="px-4 pb-3 pt-1 border-t border-slate-100 bg-slate-50/70">
-                          <div className="text-[11px] font-mono text-slate-500 mb-1.5">
-                            Stage: {span.stage} | Timestamp: {span.timestamp}
+                        <div className="px-5 py-3.5 bg-slate-50/90 border-t border-slate-100 text-xs space-y-2">
+                          <div className="grid grid-cols-3 gap-3 text-[11px] font-mono">
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-slate-400 block uppercase text-[10px]">Span Type</span>
+                              <span className="font-bold text-slate-800">{span.type}</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-slate-400 block uppercase text-[10px]">Duration</span>
+                              <span className="font-bold text-slate-800">{span.durationMs} ms ({((span.durationMs / (trace.latencyMs || 1)) * 100).toFixed(1)}%)</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-slate-400 block uppercase text-[10px]">Status</span>
+                              <span className={`font-bold ${statusColor}`}>{span.status}</span>
+                            </div>
                           </div>
-                          <pre className="p-3 bg-slate-900 text-slate-200 font-mono text-xs rounded-lg border border-slate-800 overflow-x-auto">
-                            {JSON.stringify(span.details, null, 2)}
-                          </pre>
+
+                          <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs text-slate-600 font-sans">
+                            <strong>Execution Summary:</strong> {span.name} executed cleanly in {span.durationMs}ms with result state <strong>{span.status}</strong>.
+                          </div>
                         </div>
                       )}
                     </div>
