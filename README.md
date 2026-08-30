@@ -86,8 +86,6 @@ ControlPlane.AI features strict role-based access control and organizational iso
 | **Anmol Singh** | `anmol.singh@enterprise.com` | **`ADMIN`** | Executive Core | **Global Scope**: Full system access, policy mutation, compliance certificates, and audit overrides. |
 | **Sanchay Baranwal** | `sanchay.baranwal@finance-corp.com` | **`TEAM_LEAD`** | Finance & Accounting | **Team Scope**: VP of Finance Ops; manages financial virtual models, team spend caps, and review escalations. |
 | **Swaralipi Datta** | `swaralipi.datta@finance-corp.com` | **`MEMBER`** | Finance & Accounting | **Member Scope**: Senior Analyst; executes prompts and views team-restricted telemetry. |
-| **Akansha Singh** | `akansha.singh@tech-corp.com` | **`TEAM_LEAD`** | Engineering & DevOps | **Team Scope**: Principal Architect; manages engineering copilots and model routing policies. |
-| **Mahiya Agarwal** | `mahiya.agarwal@tech-corp.com` | **`MEMBER`** | Engineering & DevOps | **Member Scope**: DevOps Specialist; conducts model benchmarking and prompt debugging. |
 
 ---
 
