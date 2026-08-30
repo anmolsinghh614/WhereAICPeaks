@@ -7,8 +7,8 @@ import { PlaygroundDecision } from '@/components/playground/PlaygroundDecision';
 import { PipelineStepper, PipelineStep } from '@/components/playground/PipelineStepper';
 import { TraceDrawer } from '@/components/playground/TraceDrawer';
 import { CreateVirtualModelModal } from '@/components/modals/CreateVirtualModelModal';
+import { useUserContext } from '@/context/UserContext';
 import {
-  DecisionState,
   FoundationModel,
   GuardrailConfig,
   PolicyRule,
@@ -81,6 +81,7 @@ const DEFAULT_PIPELINE_STEPS: PipelineStep[] = [
 ];
 
 export default function PlaygroundPage() {
+  const { activeUser } = useUserContext();
   const [virtualModels, setVirtualModels] = useState<VirtualModel[]>([]);
   const [selectedVirtualModel, setSelectedVirtualModel] = useState<VirtualModel | null>(null);
   const [policies, setPolicies] = useState<PolicyRule[]>([]);
@@ -182,6 +183,8 @@ export default function PlaygroundPage() {
           modelId: selectedModelId,
           policyId: selectedPolicyId,
           guardrailIds: selectedGuardrailIds,
+          userEmail: activeUser?.email,
+          teamId: activeUser?.teamId,
           customParameters: { temperature, maxTokens },
         }),
       });

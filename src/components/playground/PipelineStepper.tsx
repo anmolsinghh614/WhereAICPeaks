@@ -2,8 +2,6 @@
 
 import React from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Clock, ShieldCheck, Loader2, Cpu, Zap, ArrowRight } from 'lucide-react';
-import { DecisionState } from '@/types';
-
 export interface PipelineStep {
   id: string;
   label: string;
@@ -13,7 +11,7 @@ export interface PipelineStep {
 
 interface PipelineStepperProps {
   steps: PipelineStep[];
-  currentDecision?: DecisionState | null;
+  currentDecision?: 'ALLOW' | 'MODIFY' | 'BLOCK' | 'ESCALATE' | string | null;
   isExecuting?: boolean;
 }
 

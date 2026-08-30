@@ -8,7 +8,11 @@ import {
   ModelUsageMetric,
   PolicyRule,
   ReviewCase,
+  Team,
+  TeamUsageMetric,
   TraceRecord,
+  User,
+  UserUsageMetric,
   VirtualModel,
 } from '@/types';
 
@@ -24,9 +28,108 @@ declare global {
     liveEvents: LiveActivityEvent[];
     reviews: ReviewCase[];
     alerts: AlertItem[];
+    teams: Team[];
+    users: User[];
+    activeUserId: string;
     eventListeners: Array<(event: LiveActivityEvent) => void>;
   } | undefined;
 }
+
+const INITIAL_TEAMS: Team[] = [
+  {
+    id: 'team-executive',
+    name: 'Executive Core',
+    description: 'Global enterprise admins, risk officers, and governance architects.',
+    department: 'Corporate & Risk',
+    dailyBudgetLimit: 500.0,
+    spentToday: 110.45,
+    memberCount: 1,
+    createdAt: '2026-08-01T08:00:00Z',
+    assignedVirtualModels: ['vm-demo-guard'],
+  },
+  {
+    id: 'team-finance',
+    name: 'Finance & Accounting',
+    description: 'Internal financial services, invoice automation, and audit analytics.',
+    department: 'Finance',
+    dailyBudgetLimit: 150.0,
+    spentToday: 42.84,
+    memberCount: 2,
+    createdAt: '2026-08-05T10:00:00Z',
+    assignedVirtualModels: ['vm-finance-assistant'],
+  },
+  {
+    id: 'team-engineering',
+    name: 'Engineering & DevOps',
+    description: 'Internal developer platform, code copilot, and system architecture.',
+    department: 'Technology',
+    dailyBudgetLimit: 200.0,
+    spentToday: 89.15,
+    memberCount: 2,
+    createdAt: '2026-08-02T12:30:00Z',
+    assignedVirtualModels: ['vm-engineering-copilot'],
+  },
+  {
+    id: 'team-support',
+    name: 'Customer Experience',
+    description: 'Global customer helpdesk, automated resolution, and support agents.',
+    department: 'Customer Service',
+    dailyBudgetLimit: 100.0,
+    spentToday: 31.22,
+    memberCount: 1,
+    createdAt: '2026-08-10T15:00:00Z',
+    assignedVirtualModels: ['vm-customer-support'],
+  },
+];
+
+const INITIAL_USERS: User[] = [
+  {
+    id: 'usr-admin',
+    name: 'Anmol Singh',
+    email: 'anmol.singh@enterprise.com',
+    role: 'ADMIN',
+    teamId: 'team-executive',
+    teamName: 'Executive Core',
+    title: 'Chief Risk Officer & Lead Architect',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+  },
+  {
+    id: 'usr-fin-lead',
+    name: 'Sanchay Baranwal',
+    email: 'sanchay.baranwal@finance-corp.com',
+    role: 'TEAM_LEAD',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
+    title: 'VP of Finance & Risk Ops',
+  },
+  {
+    id: 'usr-fin-member',
+    name: 'Swaralipi Datta',
+    email: 'swaralipi.datta@finance-corp.com',
+    role: 'MEMBER',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
+    title: 'Senior Risk & Financial Analyst',
+  },
+  {
+    id: 'usr-eng-lead',
+    name: 'Akansha Singh',
+    email: 'akansha.singh@tech-corp.com',
+    role: 'TEAM_LEAD',
+    teamId: 'team-engineering',
+    teamName: 'Engineering & DevOps',
+    title: 'Principal AI Platform Architect',
+  },
+  {
+    id: 'usr-eng-member',
+    name: 'Mahiya Agarwal',
+    email: 'mahiya.agarwal@tech-corp.com',
+    role: 'MEMBER',
+    teamId: 'team-engineering',
+    teamName: 'Engineering & DevOps',
+    title: 'DevOps & AI Governance Specialist',
+  },
+];
 
 const INITIAL_MODELS: FoundationModel[] = [
   {
@@ -199,6 +302,9 @@ const INITIAL_VIRTUAL_MODELS: VirtualModel[] = [
     totalRequests: 842,
     avgRisk: 24,
     createdAt: '2026-08-20T08:00:00Z',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
+    createdByUserEmail: 'marcus.vance@finance-corp.com',
   },
   {
     id: 'vm-customer-support',
@@ -218,6 +324,9 @@ const INITIAL_VIRTUAL_MODELS: VirtualModel[] = [
     totalRequests: 1420,
     avgRisk: 18,
     createdAt: '2026-08-21T10:00:00Z',
+    teamId: 'team-support',
+    teamName: 'Customer Experience',
+    createdByUserEmail: 'sarah.jenkins@support-desk.com',
   },
   {
     id: 'vm-engineering-copilot',
@@ -237,6 +346,9 @@ const INITIAL_VIRTUAL_MODELS: VirtualModel[] = [
     totalRequests: 2150,
     avgRisk: 29,
     createdAt: '2026-08-19T14:30:00Z',
+    teamId: 'team-engineering',
+    teamName: 'Engineering & DevOps',
+    createdByUserEmail: 'alex.chen@eng-dev.com',
   },
   {
     id: 'vm-demo-guard',
@@ -256,6 +368,9 @@ const INITIAL_VIRTUAL_MODELS: VirtualModel[] = [
     totalRequests: 560,
     avgRisk: 22,
     createdAt: '2026-08-25T09:00:00Z',
+    teamId: 'team-executive',
+    teamName: 'Executive Core',
+    createdByUserEmail: 'admin@enterprise.com',
   },
 ];
 
@@ -284,6 +399,10 @@ const INITIAL_TRACES: TraceRecord[] = [
     totalTokens: 292,
     triggeredRules: ['gr-pii'],
     guardrailViolations: ['PII: Email Address Detected'],
+    userEmail: 'swaralipi.datta@finance-corp.com',
+    userName: 'Swaralipi Datta',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
     spans: [
       { id: 'sp-1', name: 'Request Ingest & Auth', stage: 'REQUEST_INGEST', status: 'SUCCESS', durationMs: 12, timestamp: '10:20:12.010', details: { clientId: 'app-finance-prod', ip: '10.240.1.18' } },
       { id: 'sp-2', name: 'Input Guardrail Check', stage: 'GUARDRAILS_CHECK', status: 'SUCCESS', durationMs: 45, timestamp: '10:20:12.022', details: { promptInjection: 'CLEAN', secrets: 'CLEAN' } },
@@ -291,7 +410,7 @@ const INITIAL_TRACES: TraceRecord[] = [
       { id: 'sp-4', name: 'Routing to OpenAI', stage: 'ROUTING', status: 'SUCCESS', durationMs: 22, timestamp: '10:20:12.085', details: { model: 'openai-gpt-4-1', targetRegion: 'us-east-1' } },
       { id: 'sp-5', name: 'LLM Inference Call', stage: 'LLM_CALL', status: 'SUCCESS', durationMs: 560, timestamp: '10:20:12.107', details: { promptTokens: 82, completionTokens: 210, totalTokens: 292 } },
       { id: 'sp-6', name: 'Performance Evaluation', stage: 'PERFORMANCE_EVAL', status: 'SUCCESS', durationMs: 34, timestamp: '10:20:12.667', details: { score: 94, coherence: 0.98 } },
-      { id: 'sp-7', name: 'Output Responsibility Evaluation', stage: 'RESPONSIBILITY_EVAL', status: 'WARNING', durationMs: 42, timestamp: '10:20:12.701', details: { piiFound: true, entity: 'john.doe@enterprise.com' } },
+      { id: 'sp-7', name: 'Output Responsibility Evaluation', stage: 'RESPONSIBILITY_EVAL', status: 'WARNING', durationMs: 42, timestamp: '10:20:12.701', details: { piiFound: true, entity: 'swaralipi.datta@enterprise.com' } },
       { id: 'sp-8', name: 'Risk Score Computation', stage: 'RISK_CALCULATION', status: 'SUCCESS', durationMs: 16, timestamp: '10:20:12.743', details: { risk: 38, category: 'MEDIUM' } },
       { id: 'sp-9', name: 'Policy Rule Enforcement', stage: 'POLICY_ENFORCEMENT', status: 'MODIFIED', durationMs: 24, timestamp: '10:20:12.759', details: { policy: 'Finance Strict', action: 'MODIFY', redactionCount: 1 } },
       { id: 'sp-10', name: 'Response Dispatch', stage: 'RESPONSE_DISPATCH', status: 'SUCCESS', durationMs: 12, timestamp: '10:20:12.783', details: { decision: 'MODIFY', delivered: true } },
@@ -320,6 +439,10 @@ const INITIAL_TRACES: TraceRecord[] = [
     totalTokens: 42,
     triggeredRules: ['gr-prompt-inj'],
     guardrailViolations: ['Prompt Injection: Jailbreak Pattern Detected'],
+    userEmail: 'mahiya.agarwal@tech-corp.com',
+    userName: 'Mahiya Agarwal',
+    teamId: 'team-engineering',
+    teamName: 'Engineering & DevOps',
     spans: [
       { id: 'sp-1', name: 'Request Ingest', stage: 'REQUEST_INGEST', status: 'SUCCESS', durationMs: 8, timestamp: '10:18:44.008', details: { origin: 'ide-extension' } },
       { id: 'sp-2', name: 'Input Guardrail Check', stage: 'GUARDRAILS_CHECK', status: 'BLOCKED', durationMs: 64, timestamp: '10:18:44.016', details: { promptInjectionScore: 0.94, rule: 'System Prompt Hijack' } },
@@ -330,8 +453,8 @@ const INITIAL_TRACES: TraceRecord[] = [
   {
     id: 'tr-98212-c19',
     timestamp: '2026-08-26T10:15:02Z',
-    virtualModelId: 'vm-customer-support',
-    virtualModelName: 'Customer Support Bot',
+    virtualModelId: 'vm-engineering-copilot',
+    virtualModelName: 'Engineering Copilot',
     provider: 'Anthropic',
     model: 'Claude 3.7 Sonnet',
     prompt: 'How do I reset my multi-factor authentication device on the portal?',
@@ -350,6 +473,10 @@ const INITIAL_TRACES: TraceRecord[] = [
     totalTokens: 190,
     triggeredRules: [],
     guardrailViolations: [],
+    userEmail: 'akansha.singh@tech-corp.com',
+    userName: 'Akansha Singh',
+    teamId: 'team-engineering',
+    teamName: 'Engineering & DevOps',
     spans: [
       { id: 'sp-1', name: 'Request Ingest', stage: 'REQUEST_INGEST', status: 'SUCCESS', durationMs: 10, timestamp: '10:15:02.010', details: {} },
       { id: 'sp-2', name: 'Input Guardrails', stage: 'GUARDRAILS_CHECK', status: 'SUCCESS', durationMs: 38, timestamp: '10:15:02.020', details: { pii: 'NONE', injection: 'NONE' } },
@@ -383,6 +510,10 @@ const INITIAL_TRACES: TraceRecord[] = [
     totalTokens: 164,
     triggeredRules: ['gr-fin-advice'],
     guardrailViolations: ['Financial Advice: Guaranteed Return / Market Prediction'],
+    userEmail: 'sanchay.baranwal@finance-corp.com',
+    userName: 'Sanchay Baranwal',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
     spans: [
       { id: 'sp-1', name: 'Request Ingest', stage: 'REQUEST_INGEST', status: 'SUCCESS', durationMs: 14, timestamp: '10:10:30.014', details: {} },
       { id: 'sp-2', name: 'LLM Inference Call', stage: 'LLM_CALL', status: 'SUCCESS', durationMs: 650, timestamp: '10:10:30.028', details: {} },
@@ -403,6 +534,8 @@ const INITIAL_EVENTS: LiveActivityEvent[] = [
     decision: 'MODIFY',
     riskScore: 38,
     type: 'WARNING',
+    userEmail: 'swaralipi.datta@finance-corp.com',
+    teamId: 'team-finance',
   },
   {
     id: 'ev-2',
@@ -414,6 +547,8 @@ const INITIAL_EVENTS: LiveActivityEvent[] = [
     decision: 'BLOCK',
     riskScore: 88,
     type: 'DANGER',
+    userEmail: 'devon.reed@eng-dev.com',
+    teamId: 'team-engineering',
   },
   {
     id: 'ev-3',
@@ -425,6 +560,8 @@ const INITIAL_EVENTS: LiveActivityEvent[] = [
     decision: 'ALLOW',
     riskScore: 12,
     type: 'SUCCESS',
+    userEmail: 'sarah.jenkins@support-desk.com',
+    teamId: 'team-support',
   },
   {
     id: 'ev-4',
@@ -436,6 +573,8 @@ const INITIAL_EVENTS: LiveActivityEvent[] = [
     decision: 'ESCALATE',
     riskScore: 74,
     type: 'ALERT',
+    userEmail: 'marcus.vance@finance-corp.com',
+    teamId: 'team-finance',
   },
 ];
 
@@ -450,6 +589,9 @@ const INITIAL_REVIEWS: ReviewCase[] = [
     prompt: 'Give me insider tips on which stock to buy before the earnings call tomorrow for a guaranteed 40% gain.',
     proposedOutput: 'I suggest purchasing call options on TechCorp prior to the 4 PM earnings announcement as internal metrics show unexpected revenue surge.',
     status: 'PENDING',
+    userEmail: 'marcus.vance@finance-corp.com',
+    teamId: 'team-finance',
+    teamName: 'Finance & Accounting',
   },
 ];
 
@@ -462,6 +604,8 @@ const INITIAL_ALERTS: AlertItem[] = [
     description: 'Engineering Copilot intercepted a jailbreak vector from client IDE session.',
     virtualModelName: 'Engineering Copilot',
     isRead: false,
+    teamId: 'team-engineering',
+    userEmail: 'devon.reed@eng-dev.com',
   },
   {
     id: 'alt-2',
@@ -471,6 +615,8 @@ const INITIAL_ALERTS: AlertItem[] = [
     description: 'Finance Assistant generated content flagged for potential SEC advisory violation.',
     virtualModelName: 'Finance Assistant',
     isRead: false,
+    teamId: 'team-finance',
+    userEmail: 'marcus.vance@finance-corp.com',
   },
 ];
 
@@ -486,6 +632,9 @@ function getStore() {
       liveEvents: INITIAL_EVENTS,
       reviews: INITIAL_REVIEWS,
       alerts: INITIAL_ALERTS,
+      teams: INITIAL_TEAMS,
+      users: INITIAL_USERS,
+      activeUserId: 'usr-admin',
       eventListeners: [],
     };
   }
@@ -493,8 +642,76 @@ function getStore() {
 }
 
 export const cpStore = {
-  getVirtualModels(): VirtualModel[] {
-    return getStore().virtualModels;
+  // Teams & Users Management
+  getTeams(): Team[] {
+    return getStore().teams;
+  },
+
+  getTeamById(id: string): Team | undefined {
+    return getStore().teams.find((t) => t.id === id);
+  },
+
+  createTeam(teamData: Omit<Team, 'id' | 'createdAt' | 'spentToday' | 'memberCount'>): Team {
+    const newTeam: Team = {
+      ...teamData,
+      id: `team-${Date.now().toString(36)}`,
+      createdAt: new Date().toISOString(),
+      spentToday: 0,
+      memberCount: 0,
+    };
+    getStore().teams.push(newTeam);
+    return newTeam;
+  },
+
+  getUsers(): User[] {
+    return getStore().users;
+  },
+
+  getUserById(id: string): User | undefined {
+    return getStore().users.find((u) => u.id === id);
+  },
+
+  getUserByEmail(email: string): User | undefined {
+    return getStore().users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  },
+
+  createUser(userData: Omit<User, 'id'>): User {
+    const newUser: User = {
+      ...userData,
+      id: `usr-${Date.now().toString(36)}`,
+    };
+    getStore().users.push(newUser);
+
+    // Update team member count
+    const team = getStore().teams.find((t) => t.id === newUser.teamId);
+    if (team) {
+      team.memberCount = getStore().users.filter((u) => u.teamId === team.id).length;
+    }
+
+    return newUser;
+  },
+
+  getActiveUser(): User {
+    const store = getStore();
+    return store.users.find((u) => u.id === store.activeUserId) || store.users[0];
+  },
+
+  setActiveUser(userId: string): User | null {
+    const store = getStore();
+    const user = store.users.find((u) => u.id === userId);
+    if (user) {
+      store.activeUserId = user.id;
+      return user;
+    }
+    return null;
+  },
+
+  // Role-Based Data Filtering Helpers
+  getVirtualModels(userContext?: User): VirtualModel[] {
+    const all = getStore().virtualModels;
+    const user = userContext || this.getActiveUser();
+    if (!user || user.role === 'ADMIN') return all;
+    return all.filter((vm) => vm.teamId === user.teamId || !vm.teamId);
   },
 
   getVirtualModelById(id: string): VirtualModel | undefined {
@@ -502,6 +719,7 @@ export const cpStore = {
   },
 
   createVirtualModel(vmData: Omit<VirtualModel, 'id' | 'createdAt' | 'totalRequests' | 'avgRisk' | 'spentToday'>): VirtualModel {
+    const currentUser = this.getActiveUser();
     const newVm: VirtualModel = {
       ...vmData,
       id: `vm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
@@ -509,6 +727,9 @@ export const cpStore = {
       totalRequests: 0,
       avgRisk: 0,
       spentToday: 0,
+      teamId: vmData.teamId || currentUser.teamId,
+      teamName: vmData.teamName || currentUser.teamName,
+      createdByUserEmail: currentUser.email,
     };
     getStore().virtualModels.unshift(newVm);
     this.broadcastEvent({
@@ -517,8 +738,10 @@ export const cpStore = {
       virtualModelName: newVm.name,
       model: newVm.underlyingModelId,
       stage: 'Virtual Model Created',
-      message: `New endpoint "${newVm.name}" configured and active.`,
+      message: `New endpoint "${newVm.name}" configured for team ${newVm.teamName}.`,
       type: 'INFO',
+      userEmail: currentUser.email,
+      teamId: newVm.teamId,
     });
     return newVm;
   },
@@ -573,8 +796,13 @@ export const cpStore = {
     return getStore().models;
   },
 
-  getTraces(): TraceRecord[] {
-    return getStore().traces;
+  getTraces(userContext?: User): TraceRecord[] {
+    const traces = getStore().traces;
+    const user = userContext || this.getActiveUser();
+    if (!user || user.role === 'ADMIN') return traces;
+
+    // Rule: Admins see all, individuals see their data and their team's data
+    return traces.filter((t) => t.teamId === user.teamId || t.userEmail?.toLowerCase() === user.email.toLowerCase());
   },
 
   getTraceById(id: string): TraceRecord | undefined {
@@ -585,12 +813,19 @@ export const cpStore = {
     const store = getStore();
     store.traces.unshift(trace);
 
-    // Update Virtual Model stats
+    // Update Virtual Model stats & Team spentToday
     const vm = store.virtualModels.find((v) => v.id === trace.virtualModelId);
     if (vm) {
       vm.totalRequests += 1;
       vm.spentToday = Number((vm.spentToday + trace.costUsd).toFixed(4));
       vm.avgRisk = Math.round((vm.avgRisk * (vm.totalRequests - 1) + trace.riskScore) / vm.totalRequests);
+    }
+
+    if (trace.teamId) {
+      const team = store.teams.find((t) => t.id === trace.teamId);
+      if (team) {
+        team.spentToday = Number((team.spentToday + trace.costUsd).toFixed(4));
+      }
     }
 
     // Broadcast SSE live activity
@@ -607,11 +842,16 @@ export const cpStore = {
       decision: trace.decision,
       riskScore: trace.riskScore,
       type: evType,
+      userEmail: trace.userEmail,
+      teamId: trace.teamId,
     });
   },
 
-  getLiveEvents(): LiveActivityEvent[] {
-    return getStore().liveEvents;
+  getLiveEvents(userContext?: User): LiveActivityEvent[] {
+    const events = getStore().liveEvents;
+    const user = userContext || this.getActiveUser();
+    if (!user || user.role === 'ADMIN') return events;
+    return events.filter((e) => !e.teamId || e.teamId === user.teamId || e.userEmail === user.email);
   },
 
   broadcastEvent(event: LiveActivityEvent): void {
@@ -636,8 +876,11 @@ export const cpStore = {
     };
   },
 
-  getReviews(): ReviewCase[] {
-    return getStore().reviews;
+  getReviews(userContext?: User): ReviewCase[] {
+    const reviews = getStore().reviews;
+    const user = userContext || this.getActiveUser();
+    if (!user || user.role === 'ADMIN') return reviews;
+    return reviews.filter((r) => r.teamId === user.teamId || r.userEmail === user.email);
   },
 
   addReview(review: ReviewCase): void {
@@ -658,26 +901,40 @@ export const cpStore = {
       stage: 'Review Decision',
       message: `Case ${rev.id} marked as ${status} by ${reviewer}.`,
       type: 'INFO',
+      teamId: rev.teamId,
+      userEmail: rev.userEmail,
     });
     return rev;
   },
 
-  getAlerts(): AlertItem[] {
-    return getStore().alerts;
+  getAlerts(userContext?: User): AlertItem[] {
+    const alerts = getStore().alerts;
+    const user = userContext || this.getActiveUser();
+    if (!user || user.role === 'ADMIN') return alerts;
+    return alerts.filter((a) => !a.teamId || a.teamId === user.teamId);
   },
 
-  getDashboardMetrics(): DashboardMetrics {
-    const store = getStore();
-    const totalRequests = store.traces.length + 4520; // baseline seeded count
-    const totalCost = Number((store.traces.reduce((sum, t) => sum + t.costUsd, 0) + 148.65).toFixed(4));
-    const totalTokens = store.traces.reduce((sum, t) => sum + t.totalTokens, 0) + 1425000;
-    const avgLatencyMs = Math.round(store.traces.reduce((sum, t) => sum + t.latencyMs, 0) / store.traces.length || 620);
-    const avgRiskScore = Math.round(store.traces.reduce((sum, t) => sum + t.riskScore, 0) / store.traces.length || 23);
+  getDashboardMetrics(userContext?: User): DashboardMetrics {
+    const user = userContext || this.getActiveUser();
+    const traces = this.getTraces(user);
 
-    const allowCount = store.traces.filter((t) => t.decision === 'ALLOW').length + 3840;
-    const modifyCount = store.traces.filter((t) => t.decision === 'MODIFY').length + 390;
-    const blockCount = store.traces.filter((t) => t.decision === 'BLOCK').length + 215;
-    const escalateCount = store.traces.filter((t) => t.decision === 'ESCALATE').length + 75;
+    const isFiltered = user && user.role !== 'ADMIN';
+    const totalRequests = isFiltered ? traces.length + 240 : traces.length + 4520;
+    const totalCost = Number(
+      (traces.reduce((sum, t) => sum + t.costUsd, 0) + (isFiltered ? 18.4 : 148.65)).toFixed(4)
+    );
+    const totalTokens = traces.reduce((sum, t) => sum + t.totalTokens, 0) + (isFiltered ? 180000 : 1425000);
+    const avgLatencyMs = Math.round(
+      traces.reduce((sum, t) => sum + t.latencyMs, 0) / (traces.length || 1) || 620
+    );
+    const avgRiskScore = Math.round(
+      traces.reduce((sum, t) => sum + t.riskScore, 0) / (traces.length || 1) || 23
+    );
+
+    const allowCount = traces.filter((t) => t.decision === 'ALLOW').length + (isFiltered ? 190 : 3840);
+    const modifyCount = traces.filter((t) => t.decision === 'MODIFY').length + (isFiltered ? 24 : 390);
+    const blockCount = traces.filter((t) => t.decision === 'BLOCK').length + (isFiltered ? 18 : 215);
+    const escalateCount = traces.filter((t) => t.decision === 'ESCALATE').length + (isFiltered ? 8 : 75);
 
     return {
       totalRequests,
@@ -689,7 +946,7 @@ export const cpStore = {
       escalatedCount: escalateCount,
       modifiedCount: modifyCount,
       allowedCount: allowCount,
-      budgetUtilizationPct: Math.round((totalCost / 500) * 100),
+      budgetUtilizationPct: Math.min(100, Math.round((totalCost / (isFiltered ? 150 : 500)) * 100)),
       requestsTrend: [280, 310, 295, 340, 420, 380, 490, 530, 480, 560, 610, 650],
       costTrend: [8.5, 9.8, 9.1, 10.4, 12.2, 11.5, 14.8, 16.2, 14.9, 17.5, 18.2, 19.8],
       riskTrend: [21, 24, 22, 28, 25, 29, 23, 27, 24, 22, 25, avgRiskScore],
@@ -702,10 +959,11 @@ export const cpStore = {
     };
   },
 
-  getModelUsageMetrics(): ModelUsageMetric[] {
+  getModelUsageMetrics(userContext?: User): ModelUsageMetric[] {
     const store = getStore();
+    const traces = this.getTraces(userContext);
     return store.models.map((m) => {
-      const modelTraces = store.traces.filter((t) => t.model.toLowerCase().includes(m.provider.toLowerCase()) || t.model === m.name);
+      const modelTraces = traces.filter((t) => t.model.toLowerCase().includes(m.provider.toLowerCase()) || t.model === m.name);
       return {
         modelId: m.id,
         modelName: m.name,
@@ -719,10 +977,11 @@ export const cpStore = {
     });
   },
 
-  getGuardrailMetrics(): GuardrailMetric[] {
+  getGuardrailMetrics(userContext?: User): GuardrailMetric[] {
     const store = getStore();
+    const traces = this.getTraces(userContext);
     return store.guardrails.map((gr) => {
-      const matched = store.traces.filter((t) => t.triggeredRules.includes(gr.id));
+      const matched = traces.filter((t) => t.triggeredRules.includes(gr.id));
       return {
         guardrailId: gr.id,
         name: gr.name,
@@ -730,6 +989,84 @@ export const cpStore = {
         blockedCount: matched.filter((t) => t.decision === 'BLOCK').length + (gr.id === 'gr-prompt-inj' ? 84 : 12),
         modifiedCount: matched.filter((t) => t.decision === 'MODIFY').length + (gr.id === 'gr-pii' ? 138 : 4),
         lastTriggered: matched[0]?.timestamp || new Date().toISOString(),
+      };
+    });
+  },
+
+  // Grouped Metrics by Teams
+  getTeamUsageMetrics(userContext?: User): TeamUsageMetric[] {
+    const store = getStore();
+    const user = userContext || this.getActiveUser();
+    let teams = store.teams;
+    if (user && user.role !== 'ADMIN') {
+      teams = teams.filter((t) => t.id === user.teamId);
+    }
+    return teams.map((team) => {
+      const teamTraces = store.traces.filter((t) => t.teamId === team.id);
+      const requestSeed = team.id === 'team-engineering' ? 2150 : team.id === 'team-finance' ? 1420 : team.id === 'team-support' ? 980 : 410;
+      const tokenSeed = team.id === 'team-engineering' ? 710000 : team.id === 'team-finance' ? 480000 : team.id === 'team-support' ? 310000 : 120000;
+      const costSeed = team.id === 'team-engineering' ? 89.15 : team.id === 'team-finance' ? 42.84 : team.id === 'team-support' ? 31.22 : 12.45;
+      const blockedSeed = team.id === 'team-engineering' ? 88 : team.id === 'team-finance' ? 42 : team.id === 'team-support' ? 14 : 4;
+
+      const totalRequests = teamTraces.length + requestSeed;
+      const totalTokens = teamTraces.reduce((sum, t) => sum + t.totalTokens, 0) + tokenSeed;
+      const totalCost = Number((teamTraces.reduce((sum, t) => sum + t.costUsd, 0) + costSeed).toFixed(4));
+      const avgLatencyMs = Math.round(teamTraces.reduce((sum, t) => sum + t.latencyMs, 0) / (teamTraces.length || 1) || 580);
+      const avgRisk = Math.round(teamTraces.reduce((sum, t) => sum + t.riskScore, 0) / (teamTraces.length || 1) || 24);
+      const blockedCount = teamTraces.filter((t) => t.decision === 'BLOCK').length + blockedSeed;
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        department: team.department,
+        requests: totalRequests,
+        tokens: totalTokens,
+        cost: totalCost,
+        avgLatencyMs,
+        avgRisk,
+        blockedCount,
+        violationsCount: teamTraces.filter((t) => t.decision !== 'ALLOW').length + Math.round(blockedSeed * 1.4),
+      };
+    });
+  },
+
+  // Grouped Metrics by Users
+  getUserUsageMetrics(userContext?: User): UserUsageMetric[] {
+    const store = getStore();
+    const user = userContext || this.getActiveUser();
+    let users = store.users;
+    if (user && user.role === 'TEAM_LEAD') {
+      users = users.filter((u) => u.teamId === user.teamId);
+    } else if (user && user.role === 'MEMBER') {
+      users = users.filter((u) => u.id === user.id || u.teamId === user.teamId);
+    }
+    return users.map((usr) => {
+      const userTraces = store.traces.filter((t) => t.userEmail?.toLowerCase() === usr.email.toLowerCase());
+      const isLead = usr.role === 'TEAM_LEAD' || usr.role === 'ADMIN';
+      const requestSeed = isLead ? 920 : 420;
+      const tokenSeed = isLead ? 310000 : 140000;
+      const costSeed = isLead ? 38.50 : 16.20;
+      const blockedSeed = isLead ? 24 : 8;
+
+      const totalRequests = userTraces.length + requestSeed;
+      const totalTokens = userTraces.reduce((sum, t) => sum + t.totalTokens, 0) + tokenSeed;
+      const totalCost = Number((userTraces.reduce((sum, t) => sum + t.costUsd, 0) + costSeed).toFixed(4));
+      const avgLatencyMs = Math.round(userTraces.reduce((sum, t) => sum + t.latencyMs, 0) / (userTraces.length || 1) || 610);
+      const avgRisk = Math.round(userTraces.reduce((sum, t) => sum + t.riskScore, 0) / (userTraces.length || 1) || 21);
+      const blockedCount = userTraces.filter((t) => t.decision === 'BLOCK').length + blockedSeed;
+
+      return {
+        userId: usr.id,
+        userName: usr.name,
+        userEmail: usr.email,
+        userRole: usr.role,
+        teamName: usr.teamName,
+        requests: totalRequests,
+        tokens: totalTokens,
+        cost: totalCost,
+        avgLatencyMs,
+        avgRisk,
+        blockedCount,
       };
     });
   },

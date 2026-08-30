@@ -1,8 +1,30 @@
+export type UserRole = 'ADMIN' | 'TEAM_LEAD' | 'MEMBER';
 export type DecisionState = 'ALLOW' | 'MODIFY' | 'BLOCK' | 'ESCALATE';
+export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type GuardrailAction = 'BLOCK' | 'MODIFY' | 'ESCALATE' | 'ALLOW';
 
-export type GuardrailAction = 'WARN' | 'MODIFY' | 'BLOCK' | 'ESCALATE';
+export interface Team {
+  id: string;
+  name: string;
+  description: string;
+  department: string;
+  dailyBudgetLimit: number;
+  spentToday: number;
+  memberCount: number;
+  createdAt: string;
+  assignedVirtualModels?: string[];
+}
 
-export type SeverityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  teamId: string;
+  teamName: string;
+  avatarUrl?: string;
+  title?: string;
+}
 
 export interface GuardrailConfig {
   id: string;
@@ -72,6 +94,9 @@ export interface VirtualModel {
   avgRisk: number;
   enabled?: boolean;
   createdAt?: string;
+  teamId?: string;
+  teamName?: string;
+  createdByUserEmail?: string;
 }
 
 export interface TraceSpan {
@@ -113,6 +138,10 @@ export interface TraceRecord {
   triggeredRules: string[];
   guardrailViolations: string[];
   spans: TraceSpan[];
+  userEmail?: string;
+  userName?: string;
+  teamId?: string;
+  teamName?: string;
 }
 
 export interface LiveActivityEvent {
@@ -125,6 +154,8 @@ export interface LiveActivityEvent {
   decision?: DecisionState;
   riskScore?: number;
   type: 'INFO' | 'SUCCESS' | 'WARNING' | 'DANGER' | 'ALERT';
+  userEmail?: string;
+  teamId?: string;
 }
 
 export interface DashboardMetrics {
@@ -169,6 +200,33 @@ export interface GuardrailMetric {
   lastTriggered: string;
 }
 
+export interface TeamUsageMetric {
+  teamId: string;
+  teamName: string;
+  department: string;
+  requests: number;
+  tokens: number;
+  cost: number;
+  avgLatencyMs: number;
+  avgRisk: number;
+  blockedCount: number;
+  violationsCount: number;
+}
+
+export interface UserUsageMetric {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userRole: UserRole;
+  teamName: string;
+  requests: number;
+  tokens: number;
+  cost: number;
+  avgLatencyMs: number;
+  avgRisk: number;
+  blockedCount: number;
+}
+
 export interface ReviewCase {
   id: string;
   traceId: string;
@@ -180,6 +238,9 @@ export interface ReviewCase {
   proposedOutput: string;
   status: 'PENDING' | 'APPROVED' | 'OVERRIDDEN' | 'DISMISSED';
   reviewer?: string;
+  userEmail?: string;
+  teamId?: string;
+  teamName?: string;
 }
 
 export interface AlertItem {
@@ -190,4 +251,7 @@ export interface AlertItem {
   description: string;
   virtualModelName: string;
   isRead: boolean;
+  teamId?: string;
+  userEmail?: string;
 }
+

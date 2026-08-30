@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Play, Sparkles, Shield, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, Activity, Zap } from 'lucide-react';
+import { UserRoleSwitcher } from '../rbac/UserRoleSwitcher';
 
 interface HeaderProps {
   title?: string;
@@ -57,6 +58,9 @@ export function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* RBAC Persona Switcher */}
+        <UserRoleSwitcher />
+
         {demoSuccessMsg && (
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium animate-fade-in shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -90,3 +94,4 @@ export function Header({ title, subtitle }: HeaderProps) {
     </header>
   );
 }
+

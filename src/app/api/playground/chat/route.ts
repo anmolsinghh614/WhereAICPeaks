@@ -10,6 +10,8 @@ const ChatSchema = z.object({
   policyId: z.string().optional(),
   guardrailIds: z.array(z.string()).optional(),
   scenario: z.string().optional(),
+  userEmail: z.string().optional(),
+  teamId: z.string().optional(),
   customParameters: z
     .object({
       temperature: z.number().optional(),
@@ -44,6 +46,8 @@ export async function POST(req: NextRequest) {
       policyId: parsed.data.policyId,
       guardrailIds: parsed.data.guardrailIds,
       scenario: parsed.data.scenario,
+      userEmail: parsed.data.userEmail,
+      teamId: parsed.data.teamId,
       customParameters: parsed.data.customParameters,
     });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TraceRecord, DecisionState } from '@/types';
+import { TraceRecord } from '@/types';
 import { Shield, ShieldAlert, Zap, DollarSign, Clock, CheckCircle2, AlertTriangle, XCircle, ArrowUpRight, Activity, Sparkles } from 'lucide-react';
 
 interface PlaygroundDecisionProps {

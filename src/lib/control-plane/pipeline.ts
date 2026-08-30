@@ -9,6 +9,7 @@ import { policyEngine, enforcementEngine } from '../policy/engine';
 import { tracingEngine } from '../tracing/trace';
 import { eventBus } from '../observability/events';
 import { metricsEngine } from '../observability/metrics';
+import { cpStore } from '@/lib/store';
 import { TraceRecord, TraceSpan } from '@/types';
 
 export interface ExecuteControlPlaneParams {
@@ -19,6 +20,8 @@ export interface ExecuteControlPlaneParams {
   policyId?: string;
   guardrailIds?: string[];
   scenario?: string;
+  userEmail?: string;
+  teamId?: string;
   customParameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -242,6 +245,12 @@ export async function executeControlPlane(
   );
 
   // 12. STAGE 12 & 13: TRACE & METRICS RECORDING
+  const user = params.userEmail ? cpStore.getUsers().find((u) => u.email === params.userEmail) : cpStore.getActiveUser();
+  const traceUserEmail = user?.email || 'anmol.singh@enterprise.com';
+  const traceUserName = user?.name || 'Anmol Singh';
+  const traceTeamId = user?.teamId || 'team-executive';
+  const traceTeamName = user?.teamName || 'Executive Core';
+
   const totalLatencyMs = Date.now() - startTime;
   const trace: TraceRecord = {
     id: traceId,
@@ -267,11 +276,16 @@ export async function executeControlPlane(
     totalTokens: llmResponse.totalTokens,
     triggeredRules: policyResult.triggeredRules,
     guardrailViolations: allViolations.map((v) => `${v.type}: ${v.reason}`),
+    userEmail: traceUserEmail,
+    userName: traceUserName,
+    teamId: traceTeamId,
+    teamName: traceTeamName,
     spans: tracingEngine.generateDefaultSpans(traceId, totalLatencyMs, policyResult.decision),
   };
 
   tracingEngine.recordTrace(trace);
   metricsEngine.recordExecution(trace);
+  cpStore.addTrace(trace);
   virtualModelManager.recordSpend(virtualModel.id, costCalculation.totalCost, risk.overallRisk);
 
   // Emit Real-Time SSE Activity Event

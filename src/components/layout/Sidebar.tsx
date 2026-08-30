@@ -20,6 +20,7 @@ import {
   Sparkles,
   Shield,
   Radio,
+  Users,
 } from 'lucide-react';
 
 const navItems = [
@@ -34,10 +35,12 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
+  { label: 'Teams & RBAC', href: '/teams', icon: Users },
   { label: 'Human Review', href: '/reviews', icon: UserCheck, badge: '1' },
   { label: 'Alerts', href: '/alerts', icon: Bell, badge: '2' },
   { label: 'Audit Logs', href: '/audit', icon: FileText },
 ];
+
 
 export function Sidebar() {
   const pathname = usePathname();

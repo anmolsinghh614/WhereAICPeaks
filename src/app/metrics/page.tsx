@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { DashboardMetrics, GuardrailMetric, ModelUsageMetric } from '@/types';
+import { DashboardMetrics, GuardrailMetric, ModelUsageMetric, TeamUsageMetric, UserUsageMetric } from '@/types';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { DecisionDistributionChart } from '@/components/dashboard/DecisionDistributionChart';
 import { SelectableAreaCharts } from '@/components/metrics/SelectableAreaCharts';
+import { GroupedMetricsView } from '@/components/metrics/GroupedMetricsView';
 import {
   BarChart3,
   Activity,
@@ -23,19 +24,32 @@ export default function MetricsPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [modelUsage, setModelUsage] = useState<ModelUsageMetric[]>([]);
   const [guardrailViolations, setGuardrailViolations] = useState<GuardrailMetric[]>([]);
+  const [teamUsage, setTeamUsage] = useState<TeamUsageMetric[]>([]);
+  const [userUsage, setUserUsage] = useState<UserUsageMetric[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadMetrics = () => {
+    setLoading(true);
     fetch('/api/metrics')
       .then((r) => r.json())
       .then((data) => {
         setMetrics(data.metrics);
         setModelUsage(data.modelUsage || []);
         setGuardrailViolations(data.guardrailViolations || []);
+        setTeamUsage(data.teamUsage || []);
+        setUserUsage(data.userUsage || []);
       })
       .catch((err) => console.error('Failed to load metrics', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadMetrics();
+    const handleUserChange = () => loadMetrics();
+    window.addEventListener('rbac-user-changed', handleUserChange);
+    return () => window.removeEventListener('rbac-user-changed', handleUserChange);
   }, []);
+
 
   return (
     <AppLayout
@@ -121,6 +135,9 @@ export default function MetricsPage() {
             </div>
           </div>
         )}
+
+        {/* Feature: View by Users / Teams Grouped Telemetry */}
+        <GroupedMetricsView teamUsage={teamUsage} userUsage={userUsage} />
 
         {/* Foundation Model Usage Breakdown Table */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">

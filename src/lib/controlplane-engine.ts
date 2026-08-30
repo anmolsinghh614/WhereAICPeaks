@@ -8,6 +8,8 @@ export interface ExecutePipelineParams {
     temperature?: number;
     maxTokens?: number;
   };
+  userEmail?: string;
+  teamId?: string;
 }
 
 export interface PipelineExecutionResult {
@@ -23,6 +25,8 @@ export interface PipelineExecutionResult {
 export async function executeControlPlanePipeline({
   virtualModelId,
   prompt,
+  userEmail,
+  teamId,
 }: ExecutePipelineParams): Promise<PipelineExecutionResult> {
   const startTime = Date.now();
   const vm: VirtualModel | undefined = cpStore.getVirtualModelById(virtualModelId);
@@ -30,6 +34,12 @@ export async function executeControlPlanePipeline({
   if (!vm) {
     throw new Error(`Virtual Model ${virtualModelId} not found in ControlPlane.`);
   }
+
+  const activeUser = cpStore.getActiveUser();
+  const traceUserEmail = userEmail || activeUser.email;
+  const traceUserName = activeUser.email === traceUserEmail ? activeUser.name : traceUserEmail.split('@')[0];
+  const traceTeamId = teamId || vm.teamId || activeUser.teamId;
+  const traceTeamName = vm.teamName || activeUser.teamName;
 
   const policy = cpStore.getPolicyById(vm.policyId) || cpStore.getPolicies()[0];
   const model = cpStore.getModels().find((m) => m.id === vm.underlyingModelId) || cpStore.getModels()[0];
@@ -51,7 +61,7 @@ export async function executeControlPlanePipeline({
     status: 'SUCCESS',
     durationMs: Date.now() - s1Start,
     timestamp: new Date().toLocaleTimeString(),
-    details: { virtualModel: vm.name, policy: policy.name, model: model.name },
+    details: { virtualModel: vm.name, policy: policy.name, model: model.name, userEmail: traceUserEmail, team: traceTeamName },
   });
 
   // 2. Stage: Input Guardrails Check
@@ -153,6 +163,10 @@ export async function executeControlPlanePipeline({
       totalTokens: Math.max(12, Math.round(prompt.length / 4)),
       triggeredRules,
       guardrailViolations: violations,
+      userEmail: traceUserEmail,
+      userName: traceUserName,
+      teamId: traceTeamId,
+      teamName: traceTeamName,
       spans,
     };
 
@@ -355,6 +369,10 @@ export async function executeControlPlanePipeline({
     totalTokens,
     triggeredRules,
     guardrailViolations: violations,
+    userEmail: traceUserEmail,
+    userName: traceUserName,
+    teamId: traceTeamId,
+    teamName: traceTeamName,
     spans,
   };
 
@@ -370,6 +388,9 @@ export async function executeControlPlanePipeline({
       prompt,
       proposedOutput: rawResponse,
       status: 'PENDING',
+      userEmail: traceUserEmail,
+      teamId: traceTeamId,
+      teamName: traceTeamName,
     });
   }
 

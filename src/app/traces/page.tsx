@@ -62,7 +62,11 @@ export default function TracesPage() {
 
   useEffect(() => {
     fetchTraces();
+    const handleUserChange = () => fetchTraces();
+    window.addEventListener('rbac-user-changed', handleUserChange);
+    return () => window.removeEventListener('rbac-user-changed', handleUserChange);
   }, [selectedVm, selectedDecision, selectedProvider]);
+
 
   // Client-side filtering & sorting
   const filteredAndSortedTraces = useMemo(() => {
@@ -437,6 +441,7 @@ export default function TracesPage() {
                   <tr>
                     <th className="py-3 px-4">Trace ID</th>
                     <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4">Owner / Team</th>
                     <th className="py-3 px-4">Virtual Model</th>
                     <th className="py-3 px-4">Underlying Model</th>
                     <th className="py-3 px-4">Prompt Preview</th>
@@ -459,6 +464,10 @@ export default function TracesPage() {
                       </td>
                       <td className="py-3 px-4 text-slate-500 text-[11px]">
                         {new Date(trace.timestamp).toLocaleTimeString()}
+                      </td>
+                      <td className="py-3 px-4 font-sans">
+                        <div className="text-[11px] font-semibold text-slate-800">{trace.userName || 'System Operator'}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{trace.teamName || 'Global'}</div>
                       </td>
                       <td className="py-3 px-4 font-sans font-semibold text-slate-900">
                         {trace.virtualModelName}

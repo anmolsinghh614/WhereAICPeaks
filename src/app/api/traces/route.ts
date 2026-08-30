@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tracingEngine } from '@/lib/tracing/trace';
+import { cpStore } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const decision = searchParams.get('decision');
   const provider = searchParams.get('provider');
 
-  let traces = tracingEngine.getAll();
+  let traces = cpStore.getTraces();
 
   if (virtualModelId && virtualModelId !== 'all') {
     traces = traces.filter((t) => t.virtualModelId === virtualModelId);
@@ -23,3 +23,4 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(traces);
 }
+
