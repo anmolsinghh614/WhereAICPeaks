@@ -42,13 +42,13 @@ export default function CompliancePage() {
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 EU AI Act Ready • NIST AI RMF Compliant
               </span>
-              <span className="text-xs text-slate-500">• Updated Real-time</span>
+              <span className="text-xs text-slate-300">• Updated Real-time</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
               <ShieldCheck className="w-7 h-7 text-emerald-400" />
               Regulatory Compliance & Audit Readiness Scorecard
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-300 mt-1">
               Continuous regulatory evaluation against EU AI Act (2024/1689), NIST AI RMF 1.0, and ISO/IEC 42001 standards.
             </p>
           </div>
@@ -66,54 +66,54 @@ export default function CompliancePage() {
 
         {/* Executive KPI Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">NIST AI RMF Score</span>
+              <span className="text-xs font-semibold text-slate-300">NIST AI RMF Score</span>
               <Award className="w-5 h-5 text-emerald-400" />
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-white font-mono">94.8%</span>
               <span className="text-xs text-emerald-400 font-semibold">+2.4% vs last audit</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Audit-Ready (Govern, Map, Measure, Manage)</p>
+            <p className="text-[11px] text-slate-300 mt-2 font-medium">Audit-Ready (Govern, Map, Measure, Manage)</p>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">EU AI Act Risk Tier</span>
+              <span className="text-xs font-semibold text-slate-300">EU AI Act Risk Tier</span>
               <Shield className="w-5 h-5 text-blue-400" />
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl font-bold text-blue-400 font-mono">Tier 2: Limited Risk</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Transparency & Human Oversight Enforced</p>
+            <p className="text-[11px] text-slate-300 mt-2 font-medium">Transparency & Human Oversight Enforced</p>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Guardrail Enforcement Rate</span>
+              <span className="text-xs font-semibold text-slate-300">Guardrail Enforcement Rate</span>
               <Lock className="w-5 h-5 text-purple-400" />
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-white font-mono">100%</span>
               <span className="text-xs text-purple-400 font-semibold">Zero Bypass</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Real-time PII, Secrets & Injection Shields</p>
+            <p className="text-[11px] text-slate-300 mt-2 font-medium">Real-time PII, Secrets & Injection Shields</p>
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl group-hover:bg-teal-500/10 transition-all" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">ISO/IEC 42001 Compliance</span>
+              <span className="text-xs font-semibold text-slate-300">ISO/IEC 42001 Compliance</span>
               <CheckCircle2 className="w-5 h-5 text-teal-400" />
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-teal-400 font-mono">CERTIFIED</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Management System for Artificial Intelligence</p>
+            <p className="text-[11px] text-slate-300 mt-2 font-medium">Management System for Artificial Intelligence</p>
           </div>
         </div>
 
