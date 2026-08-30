@@ -155,54 +155,6 @@ ControlPlane.AI provides automated audit readiness verification across 3 key int
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 🎬 Live Video Demonstration Script & Guide
-
-Follow this **3-Minute Presentation & Video Recording Guide** for evaluator demonstrations:
-
-### Video Setup Instructions
-1. **Screen Resolution**: 1920x1080 (1080p).
-2. **Browser**: Chrome / Edge full screen at `http://localhost:3000`.
-3. **Recording Software**: OBS Studio, Loom, or Windows Game Bar (`Win + Alt + R`).
-
----
-
-### 📹 Step-by-Step 3-Minute Presentation Script
-
-#### **0:00 - 0:30 | Introduction & Executive Overview**
-* **Visual**: Start on the **Executive Dashboard (`http://localhost:3000/`)**.
-* **Voiceover**: 
-  > *"Hello evaluators! Presenting ControlPlane.AI — the Enterprise Control Plane for Real-Time AI Governance, Multi-Tenant Data Isolation, Cost Optimization, and Regulatory Compliance built for the Accenture Innovation Challenge.*
-  > *As enterprises deploy generative AI at scale, they face critical threats: data leakage, runaway LLM spend, adversarial jailbreaks, and regulatory non-compliance under the EU AI Act. ControlPlane sits as a synchronous proxy between enterprise applications and foundation models like Google Gemini, OpenAI, and Anthropic."*
-
-#### **0:30 - 1:15 | The Interactive Governance Playground & Real-Time Pipeline**
-* **Visual**: Navigate to **Playground (`/playground`)**.
-* **Voiceover**: 
-  > *"Let's test our synchronous 13-stage governance pipeline in action. In the top right, we can switch personas between Anmol Singh (Chief Risk Officer), Sanchay Baranwal (VP of Finance), and Akansha Singh (Engineering Lead).*
-  > *First, let's execute a PII Leak Query containing customer SSNs and emails. Watch as ControlPlane inspects the payload in real-time, assigns decision `MODIFY`, and automatically redacts the email address. Clicking 'Compare Side-by-Side' reveals raw vs sanitized outputs.*
-  > *Next, let's run a Prompt Injection Attack attempting to extract system keys. Instantly, ControlPlane triggers decision `BLOCK`, intercepting the request before it ever reaches the upstream model!"*
-
-#### **1:15 - 2:00 | Multi-Tenant RBAC & Grouped Metrics**
-* **Visual**: Navigate to **Teams (`/teams`)** then **Metrics (`/metrics`)**.
-* **Voiceover**: 
-  > *"ControlPlane guarantees strict multi-tenant isolation. Under Teams & RBAC, we manage our organization across Executive Core, Finance & Accounting, and Engineering & DevOps with granular role assignments.*
-  > *Moving to the Metrics dashboard, we can switch between 'View by Teams' and 'View by Users' to analyze token usage, spend, and guardrail violations grouped specifically by team members like Sanchay Baranwal or Swaralipi Datta."*
-
-#### **2:00 - 2:30 | EU AI Act Scorecard & HITL Review Queue**
-* **Visual**: Navigate to **Compliance (`/compliance`)** and click **"Export Executive Audit Certificate"**, then switch to **Human Review (`/reviews`)**.
-* **Voiceover**: 
-  > *"For regulatory compliance, our EU AI Act & NIST Scorecard provides continuous 94.8% audit readiness evaluation. With one click, executive risk officers can generate a signed PDF Audit Certificate.*
-  > *When a query triggers high risk—such as unauthorized financial advice—it routes to our Human-in-the-Loop Review Queue. Here, Anmol Singh can inspect the case, edit the response inline, and click Approve & Dispatch or Reject & Block."*
-
-#### **2:30 - 3:00 | Virtual Models, Kill-Switches & Conclusion**
-* **Visual**: Finish on **Virtual Models (`/virtual-models`)**.
-* **Voiceover**: 
-  > *"Finally, under Virtual Models, ControlPlane enforces department spend caps and provides an Emergency Kill-Switch to block compromised endpoints instantly, alongside Auto-Fallback targets to GPT-4o-mini or Claude 3.5 Haiku.*
-  > *ControlPlane.AI bridges the gap between enterprise innovation and zero-trust governance. Thank you!"*
-
----
-
 ## 💻 Technical Stack & Design System
 
 * **Framework**: Next.js 14 (App Router), React 18, TypeScript
