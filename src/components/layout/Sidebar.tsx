@@ -36,6 +36,7 @@ const navItems = [
 
 const secondaryNavItems = [
   { label: 'Teams & RBAC', href: '/teams', icon: Users },
+  { label: 'Compliance & AI Act', href: '/compliance', icon: Shield, badge: 'NIST' },
   { label: 'Human Review', href: '/reviews', icon: UserCheck, badge: '1' },
   { label: 'Alerts', href: '/alerts', icon: Bell, badge: '2' },
   { label: 'Audit Logs', href: '/audit', icon: FileText },
